@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>冷氣推進：跳躍跑酷</title>
+<style>
+:root{--bg:#0f1012;--tx:#ece9e1;--tx2:#b9b6ad;--mut:#8a887f;--bd:rgba(255,255,255,.12);--card:rgba(22,23,26,.86);--acc:#85b7eb;--f:#7CC35A;--w:#F08080;--vv:#5FA8F0;--m:#A59CF0}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none}
+.panel{position:fixed;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px 16px;backdrop-filter:blur(10px);z-index:3}
+#hud{left:18px;top:18px;width:220px;font-size:13.5px}
+#map{position:fixed;left:50%;top:18px;transform:translateX(-50%);width:min(520px,44vw);height:auto;z-index:3;background:rgba(22,23,26,.7);border:1px solid var(--bd);border-radius:10px}
+#menu,#result{left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);max-height:88vh;overflow-y:auto;z-index:5}
+#msg{position:fixed;left:50%;top:30%;transform:translateX(-50%);font-size:26px;font-weight:700;text-shadow:0 2px 14px #000;pointer-events:none;z-index:4;opacity:0;transition:opacity .25s;text-align:center;max-width:90vw}
+.hide{display:none!important}
+h2{margin:0 0 8px;font-size:22px}
+p{color:var(--tx2);line-height:1.7;font-size:14px;margin:0 0 10px}
+.b{font:inherit;font-size:14px;padding:8px 14px;border:1px solid var(--bd);border-radius:10px;background:rgba(255,255,255,.06);color:var(--tx);cursor:pointer;text-decoration:none;display:inline-block}
+.b:hover{border-color:var(--acc)}
+.lv{display:block;width:100%;text-align:left;margin:0 0 8px}
+.lv small{display:block;color:var(--mut);font-size:12.5px;margin-top:3px;line-height:1.5}
+.lv .st{float:right;color:#fac775}
+.k{display:flex;justify-content:space-between;margin:2px 0;font-variant-numeric:tabular-nums}
+.k span:first-child{color:var(--tx2)}
+.bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin:3px 0 6px}
+.bar i{display:block;height:100%;background:var(--vv)}
+.bad{color:var(--w)}.ok{color:var(--f)}
+#top{position:fixed;right:18px;top:18px;display:flex;gap:8px;z-index:6}
+.pad{position:fixed;bottom:20px;display:flex;gap:10px;z-index:4}
+#padL{left:16px}#padR{right:16px}
+.pad button{width:76px;height:76px;border-radius:50%;border:2px solid var(--bd);background:rgba(255,255,255,.08);color:var(--tx);font:inherit;font-size:15px;font-weight:600;touch-action:none;-webkit-touch-callout:none}
+.pad button.on{background:var(--acc);color:#0f1012;border-color:var(--acc)}
+.pad button[data-k=jump]{width:92px;height:92px;border-color:var(--vv)}
+@media (hover:hover) and (pointer:fine){.pad{display:none}}
+@media(max-width:760px){#hud{width:150px;font-size:12px;padding:10px 12px}#map{top:auto;bottom:122px;width:92vw}#top .b{font-size:12px;padding:6px 10px}#msg{font-size:20px}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="top"><a class="b" href="index.html">故事</a><a class="b" href="game.html">懸停關卡</a><button class="b" id="toMenu">關卡</button></div>
+<div id="hud" class="panel hide"></div>
+<canvas id="map" class="hide" width="1040" height="120"></canvas>
+<div id="msg"></div>
+<div id="padL" class="pad hide"><button data-k="b">煞車</button><button data-k="t">油門</button></div>
+<div id="padR" class="pad hide"><button data-k="boost">衝</button><button data-k="jump">跳</button></div>
+
+<div id="menu" class="panel">
+  <h2>冷氣推進：跳躍跑酷</h2>
+  <p>→ 油門、← 煞車、空白鍵往下噴（跳）、Shift 往後噴（衝），兩個共用同一槽氣。R 重來。<br>
+  0.5 m 以下的高低差輪子爬得上去；落地垂直速度超過 9 m/s 會撞壞；終點要在綠色區停下來。</p>
+  <div id="lvls"></div>
+</div>
+
+<div id="result" class="panel hide">
+  <h2 id="rTitle"></h2><p id="rText"></p>
+  <button class="b" id="retry">再試一次（R）</button> <button class="b" id="back">選關</button> <button class="b" id="next">下一關</button>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {K,GAS,nozzle,tank} from './physics.js';
+
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,k)=>a+(b-a)*k,rnd=s=>(Math.random()-0.5)*s;
+/* 車：M 車重、μ 抓地、P 馬達功率；Nd 往下噴嘴數、Nr 往後噴嘴數 */
+const C={M:2000,mu:1.1,P:300e3,CdA:0.6,Crr:0.015,Nd:4,Nr:2,P0:690e5,T0:293.15,d:0.017,VMAX:9,STEP:0.5};
+const Agas=Math.PI*C.d*C.d/4;
+
+/* ============ 關卡：[長度 m, 平台高度 m]；null 是深溝 ============ */
+const COURSES=[
+ {name:'暖身',desc:'10 m 的小溝靠速度就飛得過去，2 m 台階要跳。最後停在綠色區。',gas:200,g:9.81,Pa:1,
+  segs:[[80,0],[10,null],[60,0],[50,2],[40,0],[16,null],[60,0]],fin:[45,0]},
+ {name:'斷橋',desc:'連續跳台，最後要從 6 m 高掉下去：不噴氣減速，落地一定超過 9 m/s。',gas:200,g:9.81,Pa:1,
+  segs:[[60,0],[25,null],[50,0],[40,3],[20,null],[40,3],[40,6],[30,null],[50,0]],fin:[45,0]},
+ {name:'月球',desc:'g = 1.62、沒有空氣、只有 40 kg 氣。輪胎抓地只剩六分之一，加速要靠往後噴。',gas:40,g:1.62,Pa:0,
+  segs:[[60,0],[60,null],[40,0],[30,8],[50,null],[40,4]],fin:[45,4]}
+];
+let li=0,L=COURSES[0],SEG=[],finX0=0,finX1=0,mode='menu';
+const best=JSON.parse(localStorage.getItem('runBest')||'{}');
+function buildCourse(){SEG=[];let x=0;for(const [len,h] of L.segs){SEG.push({x0:x,x1:x+len,h});x+=len}
+ finX0=x;finX1=x+L.fin[0];SEG.push({x0:finX0,x1:finX1,h:L.fin[1],fin:true})}
+function groundAt(x){if(x<0)return SEG[0].h;for(const s of SEG)if(x>=s.x0&&x<s.x1)return s.h;return null}
+
+/* ============ 場景 ============ */
+const renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0f1012);scene.fog=new THREE.Fog(0x0f1012,40,140);
+const pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
+const camera=new THREE.PerspectiveCamera(45,1,0.1,500);
+scene.add(new THREE.HemisphereLight(0xffffff,0x202020,0.5));
+const sun=new THREE.DirectionalLight(0xffffff,2);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-25,right:25,top:25,bottom:-25,near:1,far:120});scene.add(sun,sun.target);
+const world=new THREE.Group();scene.add(world);
+const blockMat=new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.85}),finMat=new THREE.MeshStandardMaterial({color:0x2f5a1a,roughness:.8});
+const edgeMat=new THREE.MeshBasicMaterial({color:0xcfd2d6}),postMat=new THREE.MeshStandardMaterial({color:0xd85a30});
+function buildWorld(){world.clear();
+ for(const s of SEG){if(s.h===null)continue;const len=s.x1-s.x0,hh=s.h+40;
+  const b=new THREE.Mesh(new THREE.BoxGeometry(len,hh,12),s.fin?finMat:blockMat);b.position.set(s.x0+len/2,s.h-hh/2,0);b.receiveShadow=true;b.castShadow=true;world.add(b);
+  for(const z of [-5.7,5.7]){const e=new THREE.Mesh(new THREE.BoxGeometry(len,0.04,0.25),edgeMat);e.position.set(s.x0+len/2,s.h+0.02,z);world.add(e)}
+  const lip=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.05,12),edgeMat);lip.position.set(s.x1-0.12,s.h+0.03,0);world.add(lip);
+  for(let x=Math.ceil(s.x0/10)*10;x<s.x1;x+=10){const p=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,1,8),postMat);p.position.set(x,s.h+0.5,-6.2);world.add(p)}}
+ const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,5,8),edgeMat);pole.position.set(finX1-1,L.fin[1]+2.5,-5);world.add(pole);
+ const flag=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.4),new THREE.MeshBasicMaterial({color:0x7CC35A,side:THREE.DoubleSide}));flag.position.set(finX1-2.2,L.fin[1]+4.2,-5);world.add(flag)}
+
+/* 找出模型裡的輪子，各自包一個轉軸，讓它繞車軸滾動 */
+/* 依幾何位置把輪子從模型裡切出來（模型沒有命名時用） */
+const wheels=[];
+const WHEEL={r:0.36,hw:0.2,debug:false};   // r 輪子半徑、hw 半個輪寬（m）；debug 顯示紅圈確認位置
+function setupWheels(root,parent){
+ root.updateMatrixWorld(true);parent.updateMatrixWorld(true);
+ const inv=new THREE.Matrix4().copy(parent.matrixWorld).invert(),M=new THREE.Matrix4(),v=new THREE.Vector3();
+ const meshes=[];root.traverse(o=>{if(o.isMesh&&!Array.isArray(o.material))meshes.push(o)});
+ const each=(m,fn)=>{M.multiplyMatrices(inv,m.matrixWorld);const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(M);fn(v)}};
+ /* 1. 最低的頂點＝輪胎接地點，分四個象限求輪心 */
+ let minY=Infinity;meshes.forEach(m=>each(m,p=>{if(p.y<minY)minY=p.y}));
+ const acc=[0,1,2,3].map(()=>({x:0,z:0,n:0}));
+ meshes.forEach(m=>each(m,p=>{if(p.y<minY+0.03){const a=acc[(p.x>0?2:0)+(p.z>0?1:0)];a.x+=p.x;a.z+=p.z;a.n++}}));
+ if(acc.some(a=>!a.n)){console.warn('找不到四個接地點：',acc);return}
+ const ctr=acc.map(a=>new THREE.Vector3(a.x/a.n,minY+WHEEL.r,a.z/a.n));
+ console.log('輪心（車身座標）：',ctr.map(c=>c.toArray().map(n=>+n.toFixed(2))));
+ const spins=ctr.map(c=>{const g=new THREE.Group();g.position.copy(c);parent.add(g);return g});
+ parent.updateMatrixWorld(true);
+ /* 2. 三個頂點都在同一個輪子圓柱內的三角形，搬到那個輪子的轉軸 */
+ const inWheel=(x,y,z)=>{for(let k=0;k<4;k++){const c=ctr[k];if(Math.abs(z-c.z)<WHEEL.hw&&Math.hypot(x-c.x,y-c.y)<WHEEL.r*1.04)return k}return -1};
+ let moved=0;
+ for(const m of meshes){
+  const g=m.geometry.index?m.geometry.toNonIndexed():m.geometry,p=g.attributes.position,tri=p.count/3;
+  M.multiplyMatrices(inv,m.matrixWorld);
+  const own=[[],[],[],[]],rest=[];
+  for(let t=0;t<tri;t++){let k=-2;
+   for(let j=0;j<3;j++){v.fromBufferAttribute(p,t*3+j).applyMatrix4(M);const kk=inWheel(v.x,v.y,v.z);k=j===0?kk:(kk===k?k:-1)}
+   (k>=0?own[k]:rest).push(t)}
+  if(own.every(a=>!a.length))continue;
+  m.geometry=pickTris(g,rest);
+  own.forEach((list,k)=>{if(!list.length)return;
+   const w=new THREE.Mesh(pickTris(g,list),m.material);w.castShadow=true;
+   m.parent.add(w);w.position.copy(m.position);w.quaternion.copy(m.quaternion);w.scale.copy(m.scale);w.updateMatrixWorld(true);
+   spins[k].attach(w);moved+=list.length})}
+ spins.forEach(g=>wheels.push({g,r:WHEEL.r}));
+ console.log(`切出 ${moved} 個三角形當輪子`);
+ if(WHEEL.debug)ctr.forEach(c=>{const ring=new THREE.Mesh(new THREE.TorusGeometry(WHEEL.r,0.025,8,48),new THREE.MeshBasicMaterial({color:0xff3030,depthTest:false}));
+  ring.position.copy(c);ring.renderOrder=30;parent.add(ring)})}
+function pickTris(g,tris){const out=new THREE.BufferGeometry();
+ for(const name in g.attributes){const a=g.attributes[name],s=a.itemSize,arr=new Float32Array(tris.length*3*s);
+  tris.forEach((t,i)=>{for(let j=0;j<3;j++)for(let c=0;c<s;c++)arr[(i*3+j)*s+c]=a.getComponent(t*3+j,c)});
+  out.setAttribute(name,new THREE.BufferAttribute(arr,s))}
+ if(g.attributes.normal)out.attributes.normal.normalized=false;
+ return out}
+/* ============ 車（車頭在 local −x，轉 180° 朝 +x 前進） ============ */
+const car=new THREE.Group();car.rotation.y=Math.PI;scene.add(car);const bodyG=new THREE.Group();car.add(bodyG);
+const fallback=new THREE.Group();bodyG.add(fallback);let pivot=null;
+{const b=new THREE.Mesh(new THREE.BoxGeometry(4.4,0.55,1.85),new THREE.MeshPhysicalMaterial({color:0xD85A30,metalness:.35,roughness:.32,clearcoat:1}));
+ b.position.y=0.62;b.castShadow=true;fallback.add(b);
+ const c=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.4,1.4),new THREE.MeshPhysicalMaterial({color:0x16202a,roughness:.1,clearcoat:1}));c.position.set(0.2,1.08,0);fallback.add(c);
+ const tm=new THREE.MeshStandardMaterial({color:0x151515,roughness:.9});
+ [[-1.4,.85],[-1.4,-.85],[1.4,.85],[1.4,-.85]].forEach(([x,z])=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.33,.33,.24,24),tm);w.rotation.x=Math.PI/2;w.position.set(x,.33,z);w.castShadow=true;fallback.add(w)})}
+new GLTFLoader().load('car.glb',gltf=>{const m=gltf.scene;let box=new THREE.Box3().setFromObject(m),size=box.getSize(new THREE.Vector3());
+ if(size.z>size.x){m.rotation.y=-Math.PI/2;box=new THREE.Box3().setFromObject(m);size=box.getSize(new THREE.Vector3())}
+ m.scale.setScalar(4.5/size.x);box=new THREE.Box3().setFromObject(m);const c=box.getCenter(new THREE.Vector3());m.position.set(-c.x,-box.min.y,-c.z);
+ m.traverse(o=>{if(o.isMesh)o.castShadow=true});pivot=new THREE.Group();pivot.add(m);bodyG.add(pivot);fallback.visible=false;
+ car.updateMatrixWorld(true);setupWheels(m,pivot)},undefined,err=>console.warn(err));
+const nozMat=new THREE.MeshStandardMaterial({color:0x3a3d42,metalness:.8,roughness:.35,emissive:0x5FA8F0,emissiveIntensity:0,side:THREE.DoubleSide});
+const NOZD=[[-0.7,-0.45],[0.7,-0.45],[-0.7,0.45],[0.7,0.45]],NOZR=[-0.4,0.4];
+NOZD.forEach(([x,z])=>{const m=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.16,20,1,true),nozMat);m.position.set(x,0.19,z);bodyG.add(m)});
+NOZR.forEach(z=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,0.18,16,1,true),nozMat);m.rotation.z=-Math.PI/2;m.position.set(2.3,0.45,z);bodyG.add(m)});
+
+/* ============ 粒子 ============ */
+const PN=3000,pPos=new Float32Array(PN*3),pCol=new Float32Array(PN*3),pA=new Float32Array(PN),pSz=new Float32Array(PN),
+ pV=new Float32Array(PN*3),pAge=new Float32Array(PN),pLife=new Float32Array(PN),pA0=new Float32Array(PN),pS0=new Float32Array(PN),pS1=new Float32Array(PN);let pHead=0;
+const pGeo=new THREE.BufferGeometry();
+[['position',pPos,3],['pcol',pCol,3],['alpha',pA,1],['psize',pSz,1]].forEach(([n,a,s])=>pGeo.setAttribute(n,new THREE.BufferAttribute(a,s)));
+const pMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uPR:{value:renderer.getPixelRatio()}},
+ vertexShader:`attribute vec3 pcol;attribute float alpha;attribute float psize;uniform float uPR;varying vec3 vC;varying float vA;void main(){vC=pcol;vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=psize*uPR*(420.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying vec3 vC;varying float vA;void main(){float r=length(gl_PointCoord-0.5);if(r>0.5)discard;gl_FragColor=vec4(vC,vA*smoothstep(0.5,0.15,r));}`});
+const parts=new THREE.Points(pGeo,pMat);parts.frustumCulled=false;scene.add(parts);
+function spawn(p,v,life,col,s0,s1,a0){const i=pHead;pHead=(pHead+1)%PN;const i3=i*3;
+ pPos[i3]=p.x;pPos[i3+1]=p.y;pPos[i3+2]=p.z;pV[i3]=v.x;pV[i3+1]=v.y;pV[i3+2]=v.z;pCol[i3]=col[0];pCol[i3+1]=col[1];pCol[i3+2]=col[2];
+ pAge[i]=0;pLife[i]=life;pA0[i]=a0;pS0[i]=s0;pS1[i]=s1}
+function updParts(dt){const dr=Math.pow(0.2,dt);
+ for(let i=0;i<PN;i++){if(pLife[i]<=0){pA[i]=0;continue}pAge[i]+=dt;if(pAge[i]>=pLife[i]){pLife[i]=0;pA[i]=0;continue}
+  const i3=i*3;pPos[i3]+=pV[i3]*dt;pPos[i3+1]+=pV[i3+1]*dt;pPos[i3+2]+=pV[i3+2]*dt;pV[i3]*=dr;pV[i3+1]*=dr;pV[i3+2]*=dr;
+  const f=pAge[i]/pLife[i];pA[i]=pA0[i]*(1-f);pSz[i]=lerp(pS0[i],pS1[i],f)}
+ ['position','pcol','alpha','psize'].forEach(n=>pGeo.attributes[n].needsUpdate=true)}
+const tcol=T=>{const c=clamp((30-T)/90,0,1);return [lerp(232,95,c)/255,lerp(121,168,c)/255,lerp(79,240,c)/255]};
+
+/* ============ 物理 ============ */
+const S={},IN={t:0,b:0,jump:0,boost:0};
+function reset(){Object.assign(S,{x:5,y:SEG[0].h,vx:0,vy:0,m:L.gas,ground:true,t:0,Fup:0,Fr:0,Pt:C.P0,Tj:20,pitch:0,started:false})}
+function step(dt){
+ const play=mode==='play',up=play&&IN.jump,rear=play&&IN.boost,thr=play&&IN.t,brk=play&&IN.b;
+ if(play&&(up||rear||thr))S.started=true;
+ const g=L.g,Mt=C.M+S.m;
+ /* 冷氣：往下噴＝跳，往後噴＝衝，共用同一槽 */
+ S.Fup=0;S.Fr=0;
+ if(S.m>0){const ts=tank(GAS.air,C.P0,C.T0,L.gas,S.m),n=nozzle(GAS.air,ts.P,ts.T,L.Pa*1e5,Agas);S.Pt=ts.P;S.Tj=n.Tj-K;
+  if(n.md>0){let nn=0;if(up){S.Fup=C.Nd*n.F;nn+=C.Nd}if(rear){S.Fr=C.Nr*n.F;nn+=C.Nr}S.m=Math.max(0,S.m-nn*n.md*dt)}}else S.Pt=0;
+ /* 輪胎：只有著地時有力，而且不能超過 μN；往下噴會讓 N 變小 */
+ let Fx=0;
+ if(S.ground){const N=Math.max(0,Mt*g-S.Fup),Fmax=C.mu*N;
+  if(thr)Fx=Math.min(C.P/Math.max(S.vx,2),Fmax);
+  if(brk&&S.vx>0.05)Fx=-Fmax;
+  if(S.vx>0.05)Fx-=C.Crr*N}
+ const drag=0.5*1.2*L.Pa*C.CdA*S.vx*S.vx;
+ S.vx=Math.max(0,S.vx+(Fx+S.Fr-drag)/Mt*dt);
+ S.vy+=(S.Fup/Mt-g)*dt;if(S.ground&&S.vy<0)S.vy=0;
+ const yp=S.y;S.x+=S.vx*dt;S.y+=S.vy*dt;
+ if(play&&S.started)S.t+=dt;
+ const H=groundAt(S.x);
+ if(H===null)S.ground=false;
+ else if(S.y<=H){
+  if(yp>=H-C.STEP){const imp=-S.vy;
+   if(!S.ground&&imp>C.VMAX&&play){S.y=H;S.vy=0;S.vx=0;return over(`落地垂直速度 ${imp.toFixed(1)} m/s，超過懸吊上限 ${C.VMAX} m/s。下次在落地前往下噴氣減速。`)}
+   S.y=H;S.vy=0;S.ground=true}
+  else if(play){S.vx=0;return over(`撞上台階側面（差了 ${(H-S.y).toFixed(1)} m）。要早一點跳，或跳高一點。`)}}
+ else if(S.y>H+0.02)S.ground=false;
+ if(S.y<-25&&play)return over(S.x>finX1?'衝過終點，掉下去了。要早點煞車。':'掉進溝裡了。速度不夠，或跳得不夠高。');
+ if(play&&S.ground&&S.x>=finX0&&S.x<=finX1&&S.vx<0.3&&S.started)win()}
+
+/* ============ 流程 ============ */
+let msgTimer=0;
+function flash(t,dur=1.4){$('msg').textContent=t;$('msg').style.opacity=1;msgTimer=dur}
+function over(why){mode='over';Object.keys(IN).forEach(k=>IN[k]=0);
+ setTimeout(()=>{$('rTitle').textContent='失敗';$('rText').textContent=why;$('next').classList.add('hide');show('result')},900)}
+function win(){mode='over';const left=S.m/L.gas,stars=left>=0.4?3:left>=0.15?2:1,prev=best[li];
+ if(!prev||stars>prev.s||(stars===prev.s&&S.t<prev.t)){best[li]={s:stars,t:S.t};localStorage.setItem('runBest',JSON.stringify(best))}
+ setTimeout(()=>{$('rTitle').textContent='過關 '+'★'.repeat(stars);
+  $('rText').innerHTML=`時間 ${S.t.toFixed(2)} s　剩氣 ${S.m.toFixed(0)} / ${L.gas} kg（${(left*100).toFixed(0)}%）<br><span style="color:var(--mut)">★★★ 需要剩 40% 以上的氣</span>`;
+  $('next').classList.toggle('hide',li>=COURSES.length-1);show('result')},700)}
+function play(i){li=i;L=COURSES[i];buildCourse();buildWorld();reset();snap=true;mode='play';show('play');flash(L.name,1.2)}
+function show(id){$('menu').classList.toggle('hide',id!=='menu');$('result').classList.toggle('hide',id!=='result');
+ const p=id==='play'||id==='result';$('hud').classList.toggle('hide',!p);$('map').classList.toggle('hide',!p);
+ ['padL','padR'].forEach(k=>$(k).classList.toggle('hide',id!=='play'))}
+function showMenu(){mode='menu';show('menu');Object.keys(IN).forEach(k=>IN[k]=0);
+ $('lvls').innerHTML=COURSES.map((c,i)=>`<button class="b lv" data-i="${i}">${i+1}. ${c.name}<span class="st">${best[i]?'★'.repeat(best[i].s)+' '+best[i].t.toFixed(1)+' s':''}</span><small>${c.desc}</small></button>`).join('')}
+$('lvls').onclick=e=>{const b=e.target.closest('.lv');if(b)play(+b.dataset.i)};
+$('retry').onclick=()=>play(li);$('back').onclick=showMenu;$('next').onclick=()=>play(li+1);$('toMenu').onclick=showMenu;
+
+/* ============ 操作 ============ */
+const KEYS={ArrowRight:'t',KeyD:'t',ArrowLeft:'b',KeyA:'b',Space:'jump',ArrowUp:'jump',KeyW:'jump',ShiftLeft:'boost',ShiftRight:'boost',KeyK:'boost'};
+addEventListener('keydown',e=>{const k=KEYS[e.code];if(k){IN[k]=1;e.preventDefault()}
+ if(e.code==='KeyR'&&mode!=='menu')play(li);if(e.code==='Escape')showMenu();if(e.code==='KeyF'&&pivot)pivot.rotation.y+=Math.PI});
+addEventListener('keyup',e=>{const k=KEYS[e.code];if(k)IN[k]=0});
+addEventListener('blur',()=>Object.keys(IN).forEach(k=>IN[k]=0));
+document.querySelectorAll('.pad button').forEach(b=>{const k=b.dataset.k,up=()=>{IN[k]=0;b.classList.remove('on')};
+ b.addEventListener('pointerdown',e=>{IN[k]=1;b.classList.add('on');b.setPointerCapture(e.pointerId);e.preventDefault()});
+ ['pointerup','pointercancel','lostpointercapture'].forEach(n=>b.addEventListener(n,up));
+ ['touchstart','touchmove','touchend'].forEach(n=>b.addEventListener(n,e=>e.preventDefault(),{passive:false}));
+ b.addEventListener('contextmenu',e=>e.preventDefault())});
+
+/* ============ HUD 與小地圖 ============ */
+function hud(){const H=groundAt(S.x),down=Math.max(0,-S.vy),Mt=C.M+S.m;
+ $('hud').innerHTML=`<div class="k"><span>時間</span><b>${S.t.toFixed(2)} s</b></div>`+
+ `<div class="k"><span>水平速度</span><b>${(S.vx*3.6).toFixed(0)} km/h</b></div>`+
+ `<div class="k"><span>下墜速度</span><b class="${down>C.VMAX?'bad':''}">${down.toFixed(1)} m/s</b></div>`+
+ `<div class="k"><span>離地</span><b>${H===null?'下方是深溝':(S.y-H).toFixed(1)+' m'}</b></div>`+
+ `<div class="k"><span>冷氣</span><b>${S.m.toFixed(0)} kg・${(S.Pt/1e5).toFixed(0)} bar</b></div><div class="bar"><i style="width:${S.m/L.gas*100}%"></i></div>`+
+ `<div class="k"><span>往下噴推重比</span><b>${(S.Fup>0?S.Fup:potUp())/(Mt*L.g)>1?'<span class=ok>':'<span class=bad>'}${((S.Fup>0?S.Fup:potUp())/(Mt*L.g)).toFixed(2)}</span></b></div>`}
+function potUp(){if(S.m<=0)return 0;const ts=tank(GAS.air,C.P0,C.T0,L.gas,S.m);return C.Nd*nozzle(GAS.air,ts.P,ts.T,L.Pa*1e5,Agas).F}
+const mc=$('map').getContext('2d');
+function drawMap(){const W=520,Hh=60;mc.setTransform(2,0,0,2,0,0);mc.clearRect(0,0,W,Hh);
+ const xs=x=>8+x/(finX1+10)*(W-16),maxH=Math.max(...SEG.map(s=>s.h??0))+6,ys=y=>Hh-8-(y+2)/(maxH+2)*(Hh-16);
+ for(const s of SEG){if(s.h===null)continue;mc.fillStyle=s.fin?'#3b7a22':'#4a4d53';mc.fillRect(xs(s.x0),ys(s.h),xs(s.x1)-xs(s.x0),Hh-ys(s.h))}
+ mc.fillStyle=S.Fup>0||S.Fr>0?'#85B7EB':'#E8794F';mc.beginPath();mc.arc(xs(S.x),ys(S.y)-3,4,0,7);mc.fill()}
+
+/* ============ 鏡頭：側面跟拍 ============ */
+const camP=new THREE.Vector3(),camL=new THREE.Vector3(),tv=new THREE.Vector3(),tl=new THREE.Vector3();let snap=true;
+function updCam(dt,t){
+ if(mode==='menu'){const a=t*0.15;camera.position.set(S.x+Math.cos(a)*12,S.y+3.5,Math.sin(a)*12);camera.lookAt(S.x,S.y+0.8,0);snap=true;return}
+ const port=camera.aspect<1,dist=port?40:26;
+ tv.set(S.x+(port?4:8),S.y+5,dist);tl.set(S.x+(port?4:10),S.y+0.5,0);
+ const k=snap?1:Math.min(1,dt*4);camP.lerp(tv,k);camL.lerp(tl,k);snap=false;camera.position.copy(camP);camera.lookAt(camL)}
+function onResize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<1?60:45;camera.updateProjectionMatrix();pMat.uniforms.uPR.value=renderer.getPixelRatio()}
+addEventListener('resize',onResize);onResize();
+
+/* ============ 主迴圈 ============ */
+buildCourse();buildWorld();reset();showMenu();
+let last=performance.now(),acc=0,tt=0;const Hs=1/240,wp=new THREE.Vector3(),vv=new THREE.Vector3();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
+ if(mode==='play'||mode==='over'){acc+=dt;while(acc>=Hs&&(mode==='play'||mode==='over')){step(Hs);acc-=Hs}}else acc=0;
+ /* 車身：空中依速度方向抬頭或低頭 */
+ const tp=S.ground?0:clamp(Math.atan2(S.vy,Math.max(S.vx,1))*0.5,-0.4,0.4);S.pitch+=(tp-S.pitch)*Math.min(1,dt*6);
+ car.position.set(S.x,S.y,0);bodyG.rotation.z=-S.pitch;car.updateMatrixWorld();
+ const sgn=pivot?Math.cos(pivot.rotation.y):1;      // 按 F 把車轉向後，滾動方向也跟著反過來
+for(const w of wheels)w.g.rotation.z+=sgn*S.vx*dt/w.r;
+ nozMat.emissiveIntensity=(S.Fup>0||S.Fr>0)?0.9:0;
+ const col=tcol(S.Tj);
+ if(S.Fup>0)for(const [x,z] of NOZD)for(let j=0;j<2;j++){wp.set(x,0.1,z);bodyG.localToWorld(wp);vv.set(S.vx*0.6+rnd(1),-22+rnd(6)+S.vy,rnd(1));spawn(wp,vv,0.7+Math.random()*0.4,col,0.1,0.9,0.85)}
+ if(S.Fr>0)for(const z of NOZR)for(let j=0;j<3;j++){wp.set(2.4,0.45,z);bodyG.localToWorld(wp);vv.set(S.vx-28+rnd(6),rnd(1.5)+S.vy,rnd(1.5));spawn(wp,vv,0.6+Math.random()*0.3,col,0.1,0.9,0.8)}
+ updParts(dt);
+ sun.position.set(S.x-15,S.y+40,25);sun.target.position.set(S.x,S.y,0);
+ updCam(dt,tt);renderer.render(scene,camera);
+ if(mode!=='menu'){hud();drawMap()}
+ if(msgTimer>0){msgTimer-=dt;if(msgTimer<=0)$('msg').style.opacity=0}
+ requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
