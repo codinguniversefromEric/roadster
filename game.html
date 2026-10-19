@@ -145,6 +145,8 @@ $('go').onclick=go;$('retry').onclick=go;$('back').onclick=showMenu;$('toMenu').
 $('redesign').onclick=()=>openDesign(li);$('next').onclick=()=>openDesign(li+1);
 const vb=$('valve');
 vb.addEventListener('pointerdown',e=>{pressed=true;vb.setPointerCapture(e.pointerId);e.preventDefault()});
+['touchstart','touchmove','touchend'].forEach(n=>vb.addEventListener(n,e=>e.preventDefault(),{passive:false}));
+vb.addEventListener('lostpointercapture',()=>pressed=false);
 ['pointerup','pointercancel'].forEach(n=>vb.addEventListener(n,()=>pressed=false));
 addEventListener('keydown',e=>{if(e.code==='Space'){pressed=mode==='fly';e.preventDefault()}
  if((e.key==='r'||e.key==='R')&&(mode==='fly'||mode==='result'))go();if(e.key==='Escape')showMenu();
