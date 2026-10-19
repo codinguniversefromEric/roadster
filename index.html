@@ -670,5 +670,15 @@ function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;t+=dt;
  requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 </script>
+ <script id="gc" data-goatcounter="https://codinguniversefromeric.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+document.getElementById('gc').addEventListener('load',()=>{
+  const gc=window.goatcounter,path=(gc&&gc.get_data)?gc.get_data().p:location.pathname;
+  fetch('https://codinguniversefromeric.goatcounter.com/counter/'+encodeURIComponent(path)+'.json')
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{if(d)document.getElementById('visits').textContent='已有 '+d.count+' 位訪客看過這個故事'})
+    .catch(()=>{});
+});
+</script>
 </body>
 </html>
