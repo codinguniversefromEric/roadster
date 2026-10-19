@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一罐壓縮空氣，讓跑車跳起來：冷氣推進的熱力學（3D）</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{--bg:#0f1012;--tx:#ece9e1;--tx2:#b9b6ad;--mut:#8a887f;--bd:rgba(255,255,255,.12);--card:rgba(22,23,26,.80);--acc:#85b7eb;--h:#E8794F;--vv:#5FA8F0;--f:#7CC35A;--w:#F08080;--e:#85B7EB;--m:#A59CF0;--ok-bg:#27500a;--ok:#c0dd97;--bad-bg:#791f1f;--bad:#f7c1c1;--mid-bg:#633806;--mid:#fac775}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:0}
+#spacer{height:900vh}
+#lead{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2}
+#hots{position:fixed;inset:0;pointer-events:none;z-index:3}
+.hot{position:absolute;transform:translate(-50%,-50%);font:inherit;font-size:12.5px;color:var(--tx);background:rgba(15,16,18,.75);border:1px solid var(--bd);border-radius:999px;padding:4px 11px 4px 5px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;backdrop-filter:blur(6px);transition:opacity .3s;opacity:0}
+.hot i{width:18px;height:18px;border-radius:50%;background:var(--acc);color:#0f1012;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:13px}
+.hot:hover{border-color:var(--acc)}
+#cards{position:fixed;left:28px;top:50%;height:0;width:min(430px,calc(100vw - 56px));z-index:4;pointer-events:none}
+.card{position:absolute;left:0;top:0;width:100%;opacity:0;transform:translateY(-46%);transition:opacity .45s,transform .45s;pointer-events:none;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px 22px;backdrop-filter:blur(10px)}
+.card.on{opacity:1;transform:translateY(-50%);pointer-events:auto}
+.card.hero{background:transparent;border:0;backdrop-filter:none;padding:0;text-shadow:0 2px 18px rgba(0,0,0,.6)}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--acc);font-weight:600;margin:0 0 8px}
+.card h1{font-size:clamp(30px,3.8vw,46px);line-height:1.22;margin:0 0 14px;font-weight:700}
+.card h2{font-size:clamp(22px,2.4vw,30px);line-height:1.3;margin:0 0 8px;font-weight:700}
+.lede{color:var(--tx2);font-size:15px;line-height:1.75;margin:0 0 12px}
+.fx{display:flex;align-items:flex-start;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin:6px 0 10px;padding:12px 8px;border-radius:12px;background:rgba(255,255,255,.045)}
+.col{display:flex;flex-direction:column;align-items:center;min-width:34px}
+.col .s{font-size:24px;font-weight:600;line-height:1.25}
+.col .s2{font-size:17px;font-weight:600;line-height:1.6}
+.col .val{font-size:14px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+.col .n{font-size:11px;color:var(--mut);margin-top:2px}
+.op{font-size:22px;color:var(--mut);padding-top:2px}
+.ch{color:var(--h)}.cv{color:var(--vv)}.cf{color:var(--f)}.cw{color:var(--w)}.ce{color:var(--e)}.cm{color:var(--m)}
+.drag{display:inline-block;border:1.5px dashed currentColor;border-radius:8px;padding:1px 8px;cursor:ew-resize;user-select:none;-webkit-user-select:none;touch-action:none;background:rgba(255,255,255,.06);font-weight:600}
+.drag:after{content:" ↔";font-size:11px;opacity:.7}
+.drag:focus{outline:2px solid var(--acc);outline-offset:2px}
+.ctl{font-size:14px;color:var(--tx2);margin:6px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.08);margin:4px 0 10px}
+.bar i{display:block;height:100%;transition:width .1s}
+.small{font-size:12.5px;color:var(--mut);margin:6px 0 0;line-height:1.6}
+.verdict{font-size:15px;margin:8px 0 0}
+.chain{font-size:15px;line-height:1.9;margin:0 0 6px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button.b{font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--bd);border-radius:8px;background:rgba(255,255,255,.05);color:var(--tx);cursor:pointer}
+button.b:hover{border-color:var(--acc)}
+#mini{width:100%;height:auto;display:block;margin-top:6px;border-radius:10px;background:rgba(255,255,255,.035)}
+#top{position:fixed;top:14px;right:18px;z-index:5;display:flex;gap:8px}
+#rail{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:14px}
+#rail button{width:10px;height:10px;border-radius:50%;border:1px solid var(--tx2);background:transparent;padding:0;cursor:pointer;position:relative}
+#rail button.on{background:var(--tx)}
+#rail button span{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--tx2);white-space:nowrap;opacity:0;transition:opacity .2s}
+#rail button:hover span,#rail button.on span{opacity:1}
+#hint{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:4;font-size:13px;color:var(--tx2);transition:opacity .4s;pointer-events:none}
+#note{position:fixed;left:18px;bottom:12px;z-index:4;font-size:11px;color:var(--mut)}
+#drawer{position:fixed;top:0;right:0;height:100vh;width:min(500px,100vw);background:#16171a;border-left:1px solid var(--bd);z-index:10;transform:translateX(102%);transition:transform .35s;overflow-y:auto;padding:20px 24px 48px}
+#drawer.open{transform:none}
+#dclose{position:sticky;top:0;float:right;z-index:2}
+#drawer h3{font-size:22px;margin:0 0 10px}
+#drawer p{font-size:14.5px;line-height:1.8;color:var(--tx2)}
+#drawer h4{font-size:13px;color:var(--acc);margin:18px 0 6px;letter-spacing:.04em}
+.katex-display{overflow-x:auto;overflow-y:hidden;margin:8px 0 12px}
+.row{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-size:13.5px}
+.row label{color:var(--tx2);min-width:116px}
+.row input[type=range]{flex:1;min-width:60px;accent-color:#85b7eb}
+.row input[type=range]:disabled{opacity:.4}
+.row output{min-width:96px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.live{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:rgba(255,255,255,.045);border-radius:10px;padding:10px 12px;line-height:1.9;color:var(--tx2);margin:10px 0}
+.live b{color:var(--tx);font-weight:600}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0 10px;font-size:13.5px;color:var(--tx2)}
+select{font:inherit;font-size:13.5px;background:#222;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:2px 6px}
+.pill{display:inline-block;font-size:12px;padding:2px 10px;border-radius:8px;margin:0 6px 6px 0}
+.ok{background:var(--ok-bg);color:var(--ok)}.mid{background:var(--mid-bg);color:var(--mid)}.bad{background:var(--bad-bg);color:var(--bad)}
+.q{border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+.q p{margin:0 0 8px!important;font-size:14.5px}
+.q input[type=number]{font:inherit;font-size:14px;padding:5px 9px;width:120px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--tx)}
+.fb{font-size:13.5px;margin-top:8px;min-height:18px}
+.sol{font-size:13px;color:var(--tx2);margin-top:6px;display:none;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+@media (max-width:760px){
+ #cards{left:10px;right:10px;width:auto;top:auto;bottom:10px}
+ .card{top:auto;bottom:0;transform:translateY(8px);max-height:50vh;overflow-y:auto;padding:14px 16px}
+ .card.on{transform:none}
+ .card h1{font-size:26px}.card h2{font-size:21px}.col .s{font-size:19px}.lede{font-size:13.5px}
+ #rail,#note{display:none}#hint{bottom:auto;top:60px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<svg id="lead"></svg>
+<div id="hots"></div>
+<div id="spacer"></div>
+
+<div id="top"><button class="b" id="free">自由視角</button><button class="b" data-topic="all">全部變數</button></div>
+<div id="rail"></div>
+<div id="hint">往下滑，故事開始 ↓</div>
+<div id="note">車輛模型：<a href="https://sketchfab.com/3d-models/tesla-roadtser-2026-7630c9fe842d4f5ea86fc1f122753b89" style="color:inherit">Tesla Roadtser 2026</a> by asiphy007（CC BY 4.0）；數字為一階理想氣體模型，非 Tesla 實測。</div>
+
+<div id="cards">
+<section class="card hero on" data-ph="0">
+  <p class="eyebrow">冷氣推進 · 熱力學第一定律</p>
+  <h1>一罐壓縮空氣，<br>讓跑車跳起來，<br>還噴出一團白霧。</h1>
+  <p class="lede">兩件事，靠同一條定律：能量不會變多也不會變少，只會換口袋。</p>
+  <div class="btns"><button class="b" data-topic="tank">先看氣槽的細節</button></div>
+</section>
+
+<section class="card" data-ph="1">
+  <p class="eyebrow">01 · 能量換口袋</p>
+  <h2>衝得越快，亂撞越少。</h2>
+  <p class="lede">氣槽裡的能量是固定的一筆錢。拿去「往前衝」的越多，留給「分子亂撞」的就越少，而亂撞就是溫度。</p>
+  <div class="fx">
+    <span class="col"><span class="s">h₀</span><span class="val v" data-f="h1"></span><span class="n">總能量</span></span>
+    <span class="op">=</span>
+    <span class="col ch" id="f1h"><span class="s">h</span><span class="val v" data-f="h2"></span><span class="n">亂撞＝溫度</span></span>
+    <span class="op">+</span>
+    <span class="col cv" id="f1k"><span class="s">v²/2</span><span class="val v" data-f="ke2"></span><span class="n">往前衝</span></span>
+  </div>
+  <div class="bar"><i id="bh" style="background:var(--h)"></i><i id="bv" style="background:var(--vv)"></i></div>
+  <div class="ctl">出口流速 <span class="drag v cv" tabindex="0" data-key="v2" data-f="v2"></span></div>
+  <p class="small">單位 kJ/kg。長條總長永遠不變。<span id="over1" class="cw"></span></p>
+</section>
+
+<section class="card" data-ph="2">
+  <p class="eyebrow">02 · 變冷</p>
+  <h2>亂撞少了，就是變冷。</h2>
+  <p class="lede">少掉的能量除以 cₚ，就是降了幾度。這不是吸熱，而是氣體推開空氣，自己把能量花掉了。</p>
+  <div class="fx">
+    <span class="col cv" id="f2T"><span class="s">T</span><span class="val v" data-f="T2"></span><span class="n">噴出</span></span>
+    <span class="op">=</span>
+    <span class="col ch" id="f2T0"><span class="s">T₀</span><span class="val"><span class="drag v" tabindex="0" data-key="T0" data-f="T0"></span></span><span class="n">氣槽</span></span>
+    <span class="op">−</span>
+    <span class="col"><span class="s2 v" data-f="ksym"></span><span class="val v" data-f="dhn"></span><span class="n">來自 01</span></span>
+    <span class="op">÷</span>
+    <span class="col"><span class="s">cₚ</span><span class="val"><span class="drag v" tabindex="0" data-key="cp" data-f="cp"></span></span><span class="n v" data-f="gas"></span></span>
+  </div>
+  <p class="small">分子亂撞幅度只剩 <b class="v" data-f="sq"></b> 倍（∝ √T）。cₚ：空氣 1005、CO₂ 850、氦 5190。</p>
+</section>
+
+<section class="card" data-ph="3">
+  <p class="eyebrow">03 · 飛起來</p>
+  <h2>往下丟得夠猛，車就飛起來。</h2>
+  <p class="lede">第一定律決定氣體噴多快，動量守恆把它變成推力。推力大過重量，車就離地，直到氣用完。</p>
+  <div class="fx">
+    <span class="col cf" id="f3F"><span class="s">F</span><span class="val v" data-f="Ft"></span><span class="n">推力</span></span>
+    <span class="op">=</span>
+    <span class="col" id="f3N"><span class="s">N</span><span class="val"><span class="drag v" tabindex="0" data-key="N" data-f="N"></span></span><span class="n">噴嘴數</span></span>
+    <span class="op">×(</span>
+    <span class="col cv"><span class="s">ṁv</span><span class="val v" data-f="mv"></span><span class="n">噴出動量</span></span>
+    <span class="op">+</span>
+    <span class="col"><span class="s">ΔP·A</span><span class="val v" data-f="pa"></span><span class="n">壓力差</span></span>
+    <span class="op">)</span>
+  </div>
+  <div class="fx">
+    <span class="col cw" id="f3W"><span class="s">W</span><span class="val v" data-f="W"></span><span class="n">重量</span></span>
+    <span class="op">=</span>
+    <span class="col"><span class="s">M</span><span class="val"><span class="drag v" tabindex="0" data-key="M" data-f="M"></span></span><span class="n">車重</span></span>
+    <span class="op">×</span>
+    <span class="col"><span class="s">g</span><span class="val v" data-f="g"></span><span class="n">m/s²</span></span>
+  </div>
+  <div class="ctl">氣槽 <span class="drag v ce" tabindex="0" data-key="P0" data-f="P0"></span> 喉部 <span class="drag v ce" tabindex="0" data-key="d" data-f="d"></span></div>
+  <p class="verdict">推重比 <b class="v" data-f="TW" data-c="tw"></b> → <b class="v" data-f="fly" data-c="tw"></b>，可噴 <b class="v" data-f="dur"></b></p>
+  <p class="small">現在離地 <span class="v" data-f="hnow"></span>。推力固定時最高約 <span class="v" data-f="apex"></span>；實際推力會隨氣槽降壓而衰減，畫面高度不按比例。</p>
+</section>
+
+<section class="card" data-ph="4">
+  <p class="eyebrow">04 · 白霧</p>
+  <h2>冷到露點以下，水氣變成霧。</h2>
+  <p class="lede">霧裡的水不是來自噴出的氣體，而是周圍的濕空氣被捲進冷噴流，裝不下的水氣凝結成小水滴。</p>
+  <div class="fx">
+    <span class="col cv" id="f4j"><span class="s2">噴流溫度</span><span class="val v" data-f="Tj"></span><span class="n v" data-f="src"></span></span>
+    <span class="op v" data-f="cmp"></span>
+    <span class="col ce"><span class="s2">露點</span><span class="val v" data-f="Td"></span><span class="n">水氣開始裝不下</span></span>
+    <span class="op">→</span>
+    <span class="col" id="f4f"><span class="s2 v" data-f="fogw" data-c="fog"></span></span>
+  </div>
+  <div class="ctl">氣溫 <span class="drag v ch" tabindex="0" data-key="Ta" data-f="Ta"></span> 濕度 <span class="drag v ce" tabindex="0" data-key="RH" data-f="RH"></span></div>
+  <canvas id="mini" width="600" height="300"></canvas>
+  <p class="small">藍線＝空氣能裝的水氣上限；灰線＝噴流和環境的混合；紫色段＝裝不下，凝結成霧。</p>
+</section>
+
+<section class="card" data-ph="5">
+  <p class="eyebrow">總結</p>
+  <h2>一條定律，兩個結果。</h2>
+  <p class="chain">能量守恆 → 噴出 <b class="v cv" data-f="ve"></b> → 推重比 <b class="v" data-f="TW" data-c="tw"></b> → <b class="v" data-f="fly" data-c="tw"></b></p>
+  <p class="chain">能量守恆 → 變冷到 <b class="v cv" data-f="T2"></b> <span class="v" data-f="cmp"></span> 露點 <b class="v ce" data-f="Td"></b> → <b class="v" data-f="fogw" data-c="fog"></b></p>
+  <p class="lede">氣噴完，兩件事一起停止：車落回地面，霧慢慢散開。</p>
+  <div class="btns"><button class="b" data-topic="all">全部變數</button><button class="b" data-topic="quiz">練習題</button><button class="b" data-topic="myth">常見誤解</button></div>
+  <p class="small">點車上的 ＋ 標籤，看每個零件背後的公式。</p>
+</section>
+</div>
+
+<aside id="drawer"><button class="b" id="dclose">關閉 ✕</button><div id="dbody"></div></aside>
+
+<!-- ===== 細節面板內容 ===== -->
+<template id="tp-tank">
+<p class="eyebrow">零件 · 氣槽</p><h3>能量從哪裡來？</h3>
+<p>氣槽裡是被壓到很高壓的空氣，它的能量存在焓 h 裡（分子亂撞＋被擠壓的壓力功）。打開閥門後，第一定律記錄這筆能量怎麼換口袋：</p>
+$$\dot Q-\dot W_s=\dot m\Big[(h_2-h_1)+\frac{v_2^2-v_1^2}{2}+g(z_2-z_1)\Big]$$
+<p>除以 ṁ 得到每公斤的帳 q − w_s = Δh + Δ(v²/2) + gΔz。主畫面用的 h₀ = h + v²/2 來自四個假設：q ≈ 0（太快來不及換熱）、w_s = 0（沒有渦輪）、v₁ ≈ 0（槽內氣體不動）、gΔz ≈ 0（2000 m 高度差也才約 20 kJ/kg）。可以把它們調回來看影響。</p>
+<div data-rows="q,ws,v1,v2,dz"></div>
+<div class="live">Δh = h₂ − h₁ = <b class="v" data-f="dh"></b> kJ/kg</div>
+<h4>變冷</h4>
+$$T_2=T_0+\frac{\Delta h}{c_p}\qquad\Longleftrightarrow\qquad \Delta U=Q-W$$
+<p>追著一團噴出去的氣體看：它膨脹時推開空氣、對外做功，熱又進不來，所以內能 U 下降、溫度下降。這不是吸熱。溫度的微觀定義 Ē_k = (3/2)k_BT 只是量尺，不是原因。</p>
+<div class="tools"><label>預設氣體</label><select class="gassel"><option value="air">空氣</option><option value="n2">氮氣</option><option value="co2">二氧化碳</option><option value="he">氦氣</option><option value="custom">自訂</option></select></div>
+<div data-rows="T0,cp,gam,Rg"></div>
+<div class="live">T₂ = <b class="v" data-f="T2"></b><br>cₚ、γ、R：<span class="v" data-f="cons"></span></div>
+<p>氣槽本身也會變冷：槽內剩下的氣體把前面的推出去，同樣是做功，所以管路常結霜。閥門節流（Joule–Thomson）是另一個過程：焓不變，理想氣體不會因此變冷。</p>
+</template>
+
+<template id="tp-nozzle">
+<p class="eyebrow">零件 · 噴嘴</p><h3>推力怎麼來？</h3>
+<p>第一定律只管能量、不管方向。要得到推力，還要動量守恆：每秒往下丟出 ṁ 公斤、速度 v_e 的氣體，車就受到等大反向的力。</p>
+$$F=N\big[\dot m\,v_e+(P_e-P_a)A\big],\qquad W=Mg+F_{\text{fan}}$$
+$$\dot m=C(\gamma)\,A\,P_0\sqrt{\frac{\gamma}{RT_0}},\qquad C(\gamma)=\Big(\frac{2}{\gamma+1}\Big)^{\frac{\gamma+1}{2(\gamma-1)}}$$
+<div data-rows="P0,d,N,M,mt,Pa,g"></div>
+<div class="live">C(γ) = <b class="v" data-f="C"></b>　<span class="v" data-f="mode"></span><br>ṁ = <b class="v" data-f="md"></b>/噴嘴　v_e = <b class="v" data-f="ve"></b>　P_e = <b class="v" data-f="Pe"></b><br>F = <b class="v" data-f="Ft"></b>　W = <b class="v" data-f="W"></b>　F/W = <b class="v" data-f="TW"></b><br>可噴 <b class="v" data-f="dur"></b>　噴流功率 <b class="v" data-f="Pj"></b><br>推力固定時最高 <b class="v" data-f="apex"></b></div>
+<p>P_a/P₀ 小於臨界壓比（空氣約 0.528）時喉部阻塞：v_e 等於音速、P_e 遠高於大氣，壓力項貢獻可觀（預設下約佔四成）。P₀ 降到接近 P_a 時改為亞音速，推力急降。</p>
+<p>「最高高度」假設推力固定、質量不變。實際上 P₀ 會隨氣體流出而下降，推力一路衰減，真實高度低得多；3D 畫面的高度也只是示意。</p>
+</template>
+
+<template id="tp-fog">
+<p class="eyebrow">現象 · 白霧</p><h3>水從哪裡來？</h3>
+$$e_s(T)\approx 0.61\,e^{\,17.6\,T/(T+243)}\ \text{kPa},\qquad e_a=RH\cdot e_s(T_a)$$
+$$T(f)=f\,T_a+(1-f)\,T_j,\quad e(f)=f\,e_a+(1-f)\,e_j,\quad \text{起霧}\iff e(f)>e_s\big(T(f)\big)$$
+<p>f 是噴流裡混進環境空氣的比例。T(f)、e(f) 都是直線，但 e_s(T) 是凸的指數曲線，所以混合線可以穿到曲線下方再出來：噴流和環境兩端都不飽和，中間一段仍會過飽和起霧。飛機凝結尾、冬天呼氣同理。</p>
+<div data-rows="Ta,RH,Tj,ej"></div>
+<div class="tools"><label><input type="checkbox" class="linkcb"> T_j 連動「變冷」算出的 T₂</label></div>
+<div class="live">e_a = <b class="v" data-f="ea"></b>　露點 <b class="v" data-f="Td"></b><br>噴流 <b class="v" data-f="Tj"></b>（<span class="v" data-f="src"></span>）<br>過飽和區間 f = <b class="v" data-f="fogr"></b></div>
+<p>e_j 是噴流本身帶的水氣。壓縮氣體通常經過乾燥（e_j ≈ 0），所以霧裡的水來自周圍空氣。0.61、17.6、243 是 Magnus 經驗常數。</p>
+</template>
+
+<template id="tp-fan">
+<p class="eyebrow">零件 · 後方風扇與車底吸盤</p><h3>反過來：把車吸在地上</h3>
+<p>這是另一個機制，方向和冷氣推進相反。風扇把車底的空氣往後抽走，車底壓力 P_u 低於外面的大氣 P_a，四周的大氣就把車往下壓：</p>
+$$F_{\text{fan}}=(P_a-P_u)\,A_{\text{floor}}=\Delta p\,A_{\text{floor}}$$
+<p>車底邊緣的裙邊（吸盤）負責封住縫隙，讓低壓留得住。這類「風扇車」不用跑很快就有下壓力，過彎更穩。這台示意車的風扇是展示用的設定，預設 Δp = 0，不影響主畫面的故事。</p>
+<div data-rows="dpf,Af"></div>
+<div class="live">下壓力 F_fan = <b class="v" data-f="Fdown"></b>　車重 Mg = <b class="v" data-f="Wg"></b><br>等效重量 W = <b class="v" data-f="W"></b>　推重比 F/W = <b class="v" data-f="TW"></b></div>
+<p>把 Δp 調上去，再滑回「飛起來」那段：同樣的推力，車更難離地，兩套系統同時開會互相抵消。</p>
+<p>從能量角度：風扇要持續抽氣，耗功率約為 Δp × 體積流量 ÷ 效率。車底縫隙越小，要抽的流量越少，同樣的 Δp 越省電。</p>
+</template>
+
+<template id="tp-all">
+<p class="eyebrow">控制台</p><h3>全部變數</h3>
+<h4>第一定律</h4><div data-rows="q,ws,v1,v2,dz"></div>
+<h4>氣體</h4>
+<div class="tools"><label>預設氣體</label><select class="gassel"><option value="air">空氣</option><option value="n2">氮氣</option><option value="co2">二氧化碳</option><option value="he">氦氣</option><option value="custom">自訂</option></select></div>
+<div data-rows="T0,cp,gam,Rg"></div>
+<h4>推力</h4><div data-rows="P0,d,N,M,mt,Pa,g"></div>
+<h4>白霧</h4><div data-rows="Ta,RH,Tj,ej"></div>
+<div class="tools"><label><input type="checkbox" class="linkcb"> T_j 連動 T₂</label></div>
+<h4>風扇吸地</h4><div data-rows="dpf,Af"></div>
+<div class="btns"><button class="b rstall">全部回到預設</button></div>
+<p>0.61、17.6、243（Magnus）與 k_B 是常數，不是變數。ṁ、v_e、P_e、C(γ)、露點是由上面的變數算出來的。</p>
+</template>
+
+<template id="tp-myth">
+<p class="eyebrow">判定</p><h3>常見說法</h3>
+<p><span class="pill ok">合理</span>絕熱（Q ≈ 0）</p>
+<p><span class="pill ok">合理</span>膨脹做功所以變冷</p>
+<p><span class="pill bad">錯</span>「膨脹吸熱所以變冷」：沒有吸熱，是做功</p>
+<p><span class="pill mid">因果顛倒</span>拿 3/2 k_BT 當降溫原因：它是溫度的定義</p>
+<p><span class="pill mid">缺條件</span>降溫必成霧：要有水、要冷到露點以下</p>
+<p><span class="pill mid">缺一步</span>只用第一定律解釋推力：還要動量守恆</p>
+</template>
+
+<template id="tp-quiz">
+<p class="eyebrow">練習</p><h3>自己算一次</h3>
+<div class="q" data-ans="80" data-tol="0.1"><p>1. q = w_s = 0、v₁ = 0，出口流速 400 m/s，每公斤氣體的 h 掉了多少 kJ/kg？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">Δh = −400²/2 = −80 000 J/kg = −80 kJ/kg</div></div>
+<div class="q" data-ans="50" data-tol="0.1"><p>2. 同上，但每公斤加熱 q = 30 kJ/kg，h 掉多少？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">Δh = 30 − 80 = −50 kJ/kg</div></div>
+<div class="q" data-ans="80" data-tol="0.1"><p>3. 80 kJ/kg 發生在空氣裡（cₚ = 1000），降幾 K？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">ΔT = 80 000 / 1000 = 80 K</div></div>
+<div class="q" data-ans="15.4" data-tol="0.12"><p>4. 同樣 80 kJ/kg 換成氦氣（cₚ = 5190），降幾 K？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">ΔT = 80 000 / 5190 ≈ 15.4 K</div></div>
+<div class="q" data-ans="4.1" data-tol="0.1"><p>5. 推力 80 kN、車重 2000 kg（g = 9.81），推重比？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">80 000 / 19 620 ≈ 4.1</div></div>
+<div class="q" data-ans="2.1" data-tol="0.1"><p>6. 同上，再開風扇吸地：Δp = 4.5 kPa、車底 4 m²，推重比變多少？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">F_fan = 4500 × 4 = 18 000 N
+W = 19 620 + 18 000 = 37 620 N
+80 000 / 37 620 ≈ 2.1</div></div>
+<div class="q" data-ans="1.7" data-tol="0.1"><p>7. N = 4、每個 37 kg/s、儲氣 250 kg，能噴幾秒？</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">250 / (4 × 37) ≈ 1.7 s</div></div>
+<div class="q" data-ans="12" data-tol="0.15"><p>8. 20 °C、RH 60%（e_s(20) ≈ 2.34），露點約幾 °C？（e_s(10) ≈ 1.23，e_s(15) ≈ 1.70）</p><input type="number" step="any"> <button class="b chk">檢查</button> <button class="b sol-b">看解答</button><div class="fb"></div><div class="sol">e = 1.40 kPa，落在 1.23→1.70 的 36% → 約 12 °C</div></div>
+</template>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+
+/* ================= 物理 ================= */
+const K=273.15;
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const sstep=(a,b,x)=>{const u=clamp((x-a)/(b-a),0,1);return u*u*(3-2*u)};
+const band=(p,a,b,c,d)=>sstep(a,b,p)*(1-sstep(c,d,p));
+const es=T=>0.61094*Math.exp(17.625*T/(T+243.04));
+const dew=(T,rh)=>{const m=Math.log(rh/100)+17.625*T/(243.04+T);return 243.04*m/(17.625-m)};
+const kJ=x=>{const a=x/1000;return (a!==0&&Math.abs(a)<1)?a.toFixed(2):a.toFixed(0)};
+const fmtT=T=>(T<0?'−':'')+Math.abs(T).toFixed(0)+' °C';
+
+const CF=[
+ {id:'q',lab:'加熱 q',min:-100,max:100,st:1,v:0,u:'kJ/kg',per:0.5},
+ {id:'ws',lab:'軸功 w_s',min:-100,max:100,st:1,v:0,u:'kJ/kg',per:0.5},
+ {id:'v1',lab:'入口流速 v₁',min:0,max:300,st:5,v:0,u:'m/s',per:1},
+ {id:'v2',lab:'出口流速 v₂',min:0,max:800,st:1,v:313,u:'m/s',per:2},
+ {id:'dz',lab:'高度差 Δz',min:-2000,max:2000,st:10,v:0,u:'m',per:10},
+ {id:'T0',lab:'氣槽溫度 T₀',min:-10,max:50,st:1,v:20,u:'°C',per:0.15},
+ {id:'cp',lab:'比熱 cₚ',min:500,max:6000,st:5,v:1005,u:'J/(kg·K)',per:10},
+ {id:'gam',lab:'比熱比 γ',min:1.1,max:1.7,st:0.01,v:1.4,u:'',per:0.003},
+ {id:'Rg',lab:'氣體常數 R',min:100,max:2100,st:1,v:287,u:'J/(kg·K)',per:4},
+ {id:'P0',lab:'氣槽壓力 P₀',min:1,max:700,st:1,v:690,u:'bar',per:2},
+ {id:'d',lab:'喉部直徑 d',min:5,max:80,st:1,v:17,u:'mm',per:0.15},
+ {id:'N',lab:'噴嘴數 N',min:1,max:8,st:1,v:4,u:'個',per:0.04},
+ {id:'M',lab:'車重 M',min:500,max:10000,st:50,v:2000,u:'kg',per:20},
+ {id:'mt',lab:'儲氣量 m_tank',min:10,max:500,st:5,v:250,u:'kg',per:1},
+ {id:'Pa',lab:'外界氣壓 P_a',min:0,max:2,st:0.05,v:1,u:'bar',per:0.01},
+ {id:'g',lab:'重力 g',min:0,max:25,st:0.01,v:9.81,u:'m/s²',per:0.05},
+ {id:'Ta',lab:'環境溫度 T_a',min:-5,max:40,st:1,v:22,u:'°C',per:0.12},
+ {id:'RH',lab:'環境濕度 RH',min:5,max:100,st:1,v:75,u:'%',per:0.3},
+ {id:'Tj',lab:'噴流溫度 T_j',min:-100,max:30,st:1,v:-29,u:'°C',per:0.3},
+ {id:'ej',lab:'噴流水氣 e_j',min:0,max:3,st:0.05,v:0,u:'kPa',per:0.01},
+ {id:'dpf',lab:'風扇壓差 Δp',min:0,max:5,st:0.1,v:0,u:'kPa',per:0.02},
+ {id:'Af',lab:'車底面積',min:2,max:6,st:0.1,v:4,u:'m²',per:0.02}
+];
+const CFm={},VAL={};CF.forEach(c=>{CFm[c.id]=c;VAL[c.id]=c.v});
+const GAS={air:[1005,1.4,287],n2:[1040,1.4,297],co2:[850,1.29,189],he:[5190,1.67,2077]},GASN={air:'空氣',n2:'氮氣',co2:'二氧化碳',he:'氦氣'};
+let gasSel='air',linkTj=true,hNow=0;
+const dec=st=>(String(st).split('.')[1]||'').length;
+const fmtv=(c,v)=>(v<0?'−':'')+Math.abs(v).toFixed(dec(c.st))+(c.u?' '+c.u:'');
+
+const R={};
+function calc(){
+ const v=VAL;
+ R.q=v.q*1000;R.ws=v.ws*1000;R.v1=v.v1;R.v2=v.v2;R.dz=v.dz;R.g=v.g;
+ R.T0=v.T0;R.cp=v.cp;R.gam=v.gam;R.Rg=v.Rg;R.T0K=R.T0+K;
+ R.h1=R.cp*R.T0K;R.ke1=R.v1*R.v1/2;R.ke2=R.v2*R.v2/2;R.pe=R.g*R.dz;
+ R.dh=R.q-R.ws-(R.ke2-R.ke1)-R.pe;R.h2=R.h1+R.dh;R.simple=(v.q===0&&v.ws===0&&v.v1===0&&v.dz===0);
+ R.over=R.h2<R.cp*5;R.T2K=Math.max(5,R.h2/R.cp);R.T2=R.T2K-K;
+ R.cpI=R.gam*R.Rg/(R.gam-1);R.cons=Math.abs(R.cp-R.cpI)/R.cp;
+ const gm=R.gam,Rr=R.Rg,P0=v.P0*1e5,Pa=v.Pa*1e5,d=v.d/1000,A=Math.PI*d*d/4;
+ R.N=v.N;R.M=v.M;R.mt=v.mt;R.Pa=Pa;R.A=A;
+ R.crit=Math.pow(2/(gm+1),gm/(gm-1));R.C=Math.pow(2/(gm+1),(gm+1)/(2*(gm-1)));
+ if(P0<=Pa){R.md=0;R.ve=0;R.Pe=Pa;R.mode=0}
+ else if(Pa/P0<=R.crit){R.mode=2;R.md=R.C*A*P0*Math.sqrt(gm/(Rr*R.T0K));R.ve=Math.sqrt(gm*Rr*R.T0K*2/(gm+1));R.Pe=P0*R.crit}
+ else{R.mode=1;const pr=Math.pow(P0/Pa,(gm-1)/gm),M2=2/(gm-1)*(pr-1),Te=R.T0K/pr;R.ve=Math.sqrt(M2*gm*Rr*Te);R.md=Pa/(Rr*Te)*R.ve*A;R.Pe=Pa}
+ R.F1=R.md*R.ve+(R.Pe-Pa)*A;R.Ft=R.N*R.F1;
+ R.Fdown=v.dpf*1000*v.Af;R.Wg=R.M*R.g;R.W=R.Wg+R.Fdown;
+ R.TW=R.W>0?R.Ft/R.W:(R.Ft>0?Infinity:0);
+ R.dur=R.md>0?R.mt/(R.N*R.md):Infinity;R.Pj=0.5*R.N*R.md*R.ve*R.ve;
+ /* 起跳運動學（推力固定、質量不變的上限估算） */
+ R.tb=(R.md>0&&isFinite(R.dur))?Math.min(R.dur,30):0;
+ R.a=(R.Ft-R.W)/R.M;
+ if(R.a>0&&R.tb>0){R.hb=0.5*R.a*R.tb*R.tb;R.vb=R.a*R.tb;
+   if(R.g>0.01){R.tap=R.tb+R.vb/R.g;R.apex=R.hb+R.vb*R.vb/(2*R.g);R.tf=R.tap+Math.sqrt(2*R.apex/R.g)}
+   else{R.tap=R.tb+8;R.apex=R.hb+R.vb*8;R.tf=R.tap+0.001}}
+ else{R.hb=0;R.vb=0;R.apex=0;R.tap=R.tb;R.tf=R.tb+2}
+ /* 白霧 */
+ if(linkTj){VAL.Tj=clamp(Math.round(R.T2),-100,30);R.Tj=Math.max(R.T2,-100)}else R.Tj=v.Tj;
+ R.Ta=v.Ta;R.RH=v.RH;R.ej=v.ej;R.e=R.RH/100*es(R.Ta);R.Td=dew(R.Ta,R.RH);
+ let lo=-1,hi=-1;for(let f=0;f<=1.0001;f+=0.01){const Tm=f*R.Ta+(1-f)*R.Tj,em=f*R.e+(1-f)*R.ej;if(em>es(Tm)){if(lo<0)lo=f;hi=f}}
+ R.lo=lo;R.hi=hi;R.fog=lo>=0;
+}
+function hAt(tau){if(R.apex<=0)return 0;if(tau<=R.tb)return 0.5*R.a*tau*tau;const s=tau-R.tb;return Math.max(0,R.hb+R.vb*s-0.5*R.g*s*s)}
+function tauAt(p){const P=[0.30,0.46,0.66,0.84,0.98],T=[0,0.25*R.tb,R.tb,R.tap,R.tf];if(p<=P[0])return 0;for(let i=0;i<4;i++)if(p<=P[i+1])return lerp(T[i],T[i+1],(p-P[i])/(P[i+1]-P[i]));return T[4]}
+function gasName(){let best=null,bd=1;for(const k in GAS){const dd=Math.abs(R.cp-GAS[k][0])/GAS[k][0];if(dd<bd){bd=dd;best=k}}return bd<0.035?'≈ '+GASN[best]:'自訂氣體'}
+const twS=()=>isFinite(R.TW)?R.TW.toFixed(1):'∞';
+
+const FMT={
+ h1:()=>kJ(R.h1),h2:()=>kJ(Math.max(0,R.h2)),ke2:()=>kJ(R.ke2),dhn:()=>kJ(-R.dh),dh:()=>kJ(R.dh),ksym:()=>R.simple?'(v²/2)':'(−Δh)',
+ v2:()=>R.v2+' m/s',T2:()=>fmtT(R.T2),T0:()=>fmtT(R.T0),cp:()=>String(R.cp),gas:()=>gasName(),sq:()=>Math.sqrt(R.T2K/R.T0K).toFixed(2),
+ Ft:()=>(R.Ft/1000).toFixed(0)+' kN',N:()=>String(R.N),mv:()=>(R.md*R.ve/1000).toFixed(1)+' kN',pa:()=>((R.Pe-R.Pa)*R.A/1000).toFixed(1)+' kN',
+ W:()=>(R.W/1000).toFixed(1)+' kN',Wg:()=>(R.Wg/1000).toFixed(1)+' kN',M:()=>R.M+' kg',g:()=>R.g.toFixed(2),P0:()=>VAL.P0+' bar',d:()=>VAL.d+' mm',
+ TW:twS,fly:()=>R.TW>1?'離地':'飛不起來',dur:()=>isFinite(R.dur)?R.dur.toFixed(1)+' s':'∞',
+ apex:()=>R.apex.toFixed(0)+' m',hnow:()=>hNow.toFixed(1)+' m',
+ md:()=>R.md.toFixed(1)+' kg/s',ve:()=>R.ve.toFixed(0)+' m/s',Pe:()=>(R.Pe/1e5).toFixed(0)+' bar',C:()=>R.C.toFixed(3),
+ mode:()=>['P₀ ≤ P_a，沒有氣流','未阻塞（亞音速）','阻塞（音速）'][R.mode],Pj:()=>(R.Pj/1e6).toFixed(1)+' MW',
+ Tj:()=>fmtT(R.Tj),Td:()=>fmtT(R.Td),cmp:()=>R.fog?'<':'≥',fogw:()=>R.fog?'白霧':'無霧',Ta:()=>R.Ta+' °C',RH:()=>R.RH+' %',
+ ea:()=>R.e.toFixed(2)+' kPa',fogr:()=>R.fog?(R.lo*100).toFixed(0)+'%–'+(R.hi*100).toFixed(0)+'%':'無',
+ Fdown:()=>(R.Fdown/1000).toFixed(1)+' kN',src:()=>linkTj?'來自 02':'手動設定',
+ cons:()=>R.cons>0.05?'⚠ 不自洽（γR/(γ−1) = '+R.cpI.toFixed(0)+'）':'✓ 自洽（γR/(γ−1) ≈ '+R.cpI.toFixed(0)+'）'
+};
+function getF(f){if(f.startsWith('raw:')){const k=f.slice(4);return fmtv(CFm[k],VAL[k])}const fn=FMT[f];return fn?fn():''}
+
+/* ================= 變數同步 ================= */
+function setVal(id,v){const c=CFm[id];v=clamp(Math.round(v/c.st)*c.st,c.min,c.max);VAL[id]=+v.toFixed(dec(c.st));
+ if(id==='cp'||id==='gam'||id==='Rg')gasSel='custom';if(id==='Tj')linkTj=false;calc();syncInputs()}
+function syncInputs(){
+ document.querySelectorAll('[data-sl]').forEach(el=>{const k=el.dataset.sl;if(document.activeElement!==el)el.value=VAL[k];el.disabled=(k==='Tj'&&linkTj)});
+ document.querySelectorAll('.gassel').forEach(s=>s.value=gasSel);document.querySelectorAll('.linkcb').forEach(cb=>cb.checked=linkTj)}
+function resetAll(){CF.forEach(c=>VAL[c.id]=c.v);gasSel='air';linkTj=true;calc();syncInputs()}
+const rows=keys=>keys.map(k=>{const c=CFm[k];return `<div class="row"><label>${c.lab}</label><input type="range" data-sl="${k}" min="${c.min}" max="${c.max}" step="${c.st}" value="${VAL[k]}"><output class="v" data-f="raw:${k}"></output></div>`}).join('');
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.sl;if(k)setVal(k,+e.target.value)});
+document.addEventListener('change',e=>{
+ if(e.target.classList.contains('gassel')){gasSel=e.target.value;const p=GAS[gasSel];if(p){VAL.cp=p[0];VAL.gam=p[1];VAL.Rg=p[2]}calc();syncInputs()}
+ if(e.target.classList.contains('linkcb')){linkTj=e.target.checked;calc();syncInputs()}});
+/* 公式裡的數字可拖拉 */
+let drag=null;
+document.addEventListener('pointerdown',e=>{const el=e.target.closest('.drag');if(!el)return;drag={key:el.dataset.key,x0:e.clientX,v0:VAL[el.dataset.key]};el.setPointerCapture(e.pointerId);e.preventDefault()});
+document.addEventListener('pointermove',e=>{if(drag)setVal(drag.key,drag.v0+(e.clientX-drag.x0)*CFm[drag.key].per)});
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,()=>drag=null));
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape')closeDrawer();
+ const el=document.activeElement;if(!el||!el.classList||!el.classList.contains('drag'))return;const c=CFm[el.dataset.key];
+ if(e.key==='ArrowRight'||e.key==='ArrowUp'){setVal(c.id,VAL[c.id]+c.st);e.preventDefault()}
+ if(e.key==='ArrowLeft'||e.key==='ArrowDown'){setVal(c.id,VAL[c.id]-c.st);e.preventDefault()}});
+let vEls=[];const refreshV=()=>{vEls=[...document.querySelectorAll('.v')]};
+function updateV(){for(const el of vEls){const s=getF(el.dataset.f);if(el.textContent!==s)el.textContent=s;
+ if(el.dataset.c==='tw')el.style.color=R.TW>1?'var(--f)':'var(--w)';if(el.dataset.c==='fog')el.style.color=R.fog?'var(--m)':'var(--mut)'}
+ const fr=R.over?1:clamp(R.ke2/R.h1,0,1);$('bh').style.width=(1-fr)*100+'%';$('bv').style.width=fr*100+'%';$('bv').style.background=R.over?'var(--w)':'var(--vv)';
+ $('over1').textContent=R.over?'　能量不夠：這個速度不可能。':''}
+
+/* ================= 細節面板 ================= */
+let drawerOpen=false;
+function openTopic(id){const tp=$('tp-'+id);if(!tp)return;const body=$('dbody');body.innerHTML='';body.appendChild(tp.content.cloneNode(true));
+ body.querySelectorAll('[data-rows]').forEach(el=>el.innerHTML=rows(el.dataset.rows.split(',')));
+ if(window.renderMathInElement)renderMathInElement(body,{delimiters:[{left:'$$',right:'$$',display:true}],throwOnError:false});
+ bindQuiz(body);syncInputs();refreshV();$('drawer').classList.add('open');$('drawer').scrollTop=0;drawerOpen=true}
+function closeDrawer(){$('drawer').classList.remove('open');drawerOpen=false}
+$('dclose').onclick=closeDrawer;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-topic]');if(b)openTopic(b.dataset.topic);if(e.target.closest('.rstall'))resetAll()});
+function bindQuiz(root){root.querySelectorAll('.q').forEach(q=>{const ans=+q.dataset.ans,tol=+q.dataset.tol,inp=q.querySelector('input'),fb=q.querySelector('.fb'),sol=q.querySelector('.sol');
+ q.querySelector('.chk').onclick=()=>{const v=parseFloat(inp.value);if(isNaN(v)){fb.textContent='先填一個數字';fb.style.color='var(--w)';return}
+  const ok=Math.abs(v-ans)<=Math.abs(ans)*tol+1e-9;fb.textContent=ok?'對了：'+ans:'還差一點，再對照公式看一次。';fb.style.color=ok?'var(--f)':'var(--w)';if(ok)sol.style.display='block'};
+ q.querySelector('.sol-b').onclick=()=>{sol.style.display=sol.style.display==='block'?'none':'block'}})}
+
+/* ================= 3D 場景 ================= */
+const renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0f1012);scene.fog=new THREE.Fog(0x0f1012,16,42);
+const pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,0.05,200);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x202020,0.35));
+const key=new THREE.DirectionalLight(0xffffff,2.0);key.position.set(-4,8,5);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
+Object.assign(key.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:30});key.shadow.bias=-0.0005;scene.add(key);
+const rim=new THREE.DirectionalLight(0x9fc4ff,1.0);rim.position.set(6,3,-6);scene.add(rim);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(40,64),new THREE.MeshStandardMaterial({color:0x18191c,roughness:0.85}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+/* ---- 原創示意跑車 ---- */
+const XR=[];let pivot=null;
+import('three/addons/loaders/GLTFLoader.js').then(({GLTFLoader})=>{
+  new GLTFLoader().load('car.glb',gltf=>{
+    const m=gltf.scene;
+    let box=new THREE.Box3().setFromObject(m),size=box.getSize(new THREE.Vector3());
+    if(size.z>size.x){m.rotation.y=Math.PI/2;box=new THREE.Box3().setFromObject(m);size=box.getSize(new THREE.Vector3())}
+    m.scale.setScalar(4.5/size.x);
+    box=new THREE.Box3().setFromObject(m);const c=box.getCenter(new THREE.Vector3());
+    m.position.set(-c.x,-box.min.y,-c.z);
+    m.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;
+      const arr=(Array.isArray(o.material)?o.material:[o.material]).map(x=>{const y=x.clone();XR.push(y);return y});
+      o.material=arr.length===1?arr[0]:arr});
+    pivot=new THREE.Group();pivot.add(m);car.add(pivot);
+    [body,canopy,sill,fan,skirt].forEach(o=>o.visible=false);
+    car.children.filter(o=>o.type==='Group'&&o!==tankG&&o!==nozG&&o!==fan&&o!==pivot).forEach(o=>o.visible=false);
+    car.children.filter(o=>o.isMesh&&(o.material===lampMat||o.material===redMat)).forEach(o=>o.visible=false);
+  },undefined,err=>{console.warn(err);document.getElementById('note').textContent='讀不到 car.glb（請用 npx serve 開啟），目前顯示示意車。'});
+});
+addEventListener('keydown',e=>{if((e.key==='f'||e.key==='F')&&pivot)pivot.rotation.y+=Math.PI});
+const car=new THREE.Group();scene.add(car);
+const bodyMat=new THREE.MeshPhysicalMaterial({color:0xD85A30,metalness:0.35,roughness:0.32,clearcoat:1,clearcoatRoughness:0.08,transparent:true});
+const glassMat=new THREE.MeshPhysicalMaterial({color:0x16202a,metalness:0.2,roughness:0.06,clearcoat:1,transparent:true,opacity:0.92});
+const darkMat=new THREE.MeshStandardMaterial({color:0x1d1e21,roughness:0.6,metalness:0.3});
+const sh=new THREE.Shape();
+sh.moveTo(-2.18,0.30);sh.lineTo(-1.84,0.30);sh.lineTo(-1.84,0.34);
+sh.absarc(-1.4,0.34,0.44,Math.PI,0,true);
+sh.lineTo(-0.96,0.28);sh.lineTo(0.96,0.28);sh.lineTo(0.96,0.34);
+sh.absarc(1.4,0.34,0.44,Math.PI,0,true);
+sh.lineTo(1.84,0.32);sh.lineTo(2.18,0.34);
+sh.quadraticCurveTo(2.30,0.55,2.22,0.78);sh.quadraticCurveTo(2.15,0.93,1.90,0.95);
+sh.lineTo(1.30,0.97);sh.lineTo(-0.70,0.89);
+sh.quadraticCurveTo(-1.50,0.92,-2.05,0.66);sh.quadraticCurveTo(-2.32,0.52,-2.18,0.30);
+const bodyGeo=new THREE.ExtrudeGeometry(sh,{depth:1.8,bevelEnabled:true,bevelThickness:0.1,bevelSize:0.05,bevelSegments:5,curveSegments:40});bodyGeo.translate(0,0,-0.9);
+const body=new THREE.Mesh(bodyGeo,bodyMat);body.castShadow=true;car.add(body);
+const cs=new THREE.Shape();cs.moveTo(-0.72,0.86);cs.quadraticCurveTo(-0.25,1.0,0.10,1.20);cs.quadraticCurveTo(0.55,1.27,1.00,1.19);cs.quadraticCurveTo(1.25,1.10,1.42,0.95);cs.lineTo(-0.72,0.86);
+const canGeo=new THREE.ExtrudeGeometry(cs,{depth:1.3,bevelEnabled:true,bevelThickness:0.14,bevelSize:0.05,bevelSegments:5,curveSegments:32});canGeo.translate(0,0,-0.65);
+const canopy=new THREE.Mesh(canGeo,glassMat);canopy.castShadow=true;car.add(canopy);
+const sill=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.06,2.02),darkMat);sill.position.set(0,0.31,0);car.add(sill);
+const lampMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:1.6});
+const redMat=new THREE.MeshStandardMaterial({color:0xff3b30,emissive:0xff2a1f,emissiveIntensity:1.4});
+[-0.62,0.62].forEach(z=>{const l=new THREE.Mesh(new THREE.SphereGeometry(0.1,16,12),lampMat);l.scale.set(0.35,0.4,1.4);l.position.set(-2.2,0.56,z);car.add(l);
+ const r=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.03,24),redMat);r.rotation.z=Math.PI/2;r.position.set(2.26,0.70,z);car.add(r)});
+const tireMat=new THREE.MeshStandardMaterial({color:0x151515,roughness:0.9}),rimMat=new THREE.MeshStandardMaterial({color:0x2a2b2e,metalness:0.6,roughness:0.4}),spokeMat=new THREE.MeshStandardMaterial({color:0xc9cdd2,metalness:0.9,roughness:0.25});
+[[-1.4,0.8],[-1.4,-0.8],[1.4,0.8],[1.4,-0.8]].forEach(([x,z])=>{const w=new THREE.Group();
+ const tire=new THREE.Mesh(new THREE.CylinderGeometry(0.33,0.33,0.24,40),tireMat);tire.rotation.x=Math.PI/2;tire.castShadow=true;w.add(tire);
+ const rd=new THREE.Mesh(new THREE.CylinderGeometry(0.23,0.23,0.25,40),rimMat);rd.rotation.x=Math.PI/2;w.add(rd);
+ for(let i=0;i<5;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.40,0.03),spokeMat);s.position.z=Math.sign(z)*0.13;s.rotation.z=i*Math.PI*2/5;w.add(s)}
+ w.position.set(x,0.33,z);car.add(w)});
+/* 後方風扇 */
+const fan=new THREE.Group();fan.position.set(2.33,0.5,0);car.add(fan);
+const duct=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.035,12,40),spokeMat);duct.rotation.y=Math.PI/2;fan.add(duct);
+const fanBack=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.02,32),darkMat);fanBack.rotation.z=Math.PI/2;fanBack.position.x=-0.03;fan.add(fanBack);
+const blades=new THREE.Group();fan.add(blades);
+for(let i=0;i<6;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.34,0.06),spokeMat);b.rotation.x=i*Math.PI/3;b.rotation.y=0.35;blades.add(b)}
+/* 車底吸盤裙邊 */
+const skirtMat=new THREE.MeshStandardMaterial({color:0x111214,roughness:0.7,emissive:0x3fd0e0,emissiveIntensity:0});
+const skirt=new THREE.Mesh(new THREE.BoxGeometry(3.6,0.025,1.9),skirtMat);skirt.position.y=0.262;car.add(skirt);
+/* 氣槽（X 光時看得到） */
+const tankG=new THREE.Group();car.add(tankG);
+const tankMat=new THREE.MeshStandardMaterial({color:0x9fb3c8,metalness:0.85,roughness:0.28,emissive:0xE8794F,emissiveIntensity:0,transparent:true,opacity:0.45,depthWrite:false});
+const tankC=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,1.5,32,1,true),tankMat);tankC.rotation.z=Math.PI/2;tankC.position.y=0.6;tankG.add(tankC);
+[-0.75,0.75].forEach(x=>{const cap=new THREE.Mesh(new THREE.SphereGeometry(0.26,24,16),tankMat);cap.position.set(x,0.6,0);tankG.add(cap)});
+const TPN=260,tpBase=new Float32Array(TPN*3),tpPos=new Float32Array(TPN*3),tpCol=new Float32Array(TPN*3);
+for(let i=0;i<TPN;i++){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*0.21;tpBase[i*3]=lerp(-0.7,0.7,Math.random());tpBase[i*3+1]=0.6+r*Math.cos(a);tpBase[i*3+2]=r*Math.sin(a)}
+const tpGeo=new THREE.BufferGeometry();tpGeo.setAttribute('position',new THREE.BufferAttribute(tpPos,3));tpGeo.setAttribute('color',new THREE.BufferAttribute(tpCol,3));
+const tp=new THREE.Points(tpGeo,new THREE.PointsMaterial({size:0.045,vertexColors:true,transparent:true,depthWrite:false}));tankG.add(tp);
+/* 噴嘴 */
+const nozG=new THREE.Group();car.add(nozG);let noz=[],lastN=-1;
+const nozMat=new THREE.MeshStandardMaterial({color:0x3a3d42,metalness:0.8,roughness:0.35,side:THREE.DoubleSide,emissive:0x5FA8F0,emissiveIntensity:0});
+const pipeMat=new THREE.MeshStandardMaterial({color:0x7d8a99,metalness:0.7,roughness:0.4});
+const coneGeo=new THREE.ConeGeometry(0.1,0.16,24,1,true),pipeGeo=new THREE.CylinderGeometry(0.025,0.025,0.32,10),armGeo=new THREE.CylinderGeometry(0.025,0.025,0.45,10);
+function buildNozzles(){while(nozG.children.length)nozG.remove(nozG.children[0]);noz=[];const N=R.N,cols=Math.ceil(N/2);
+ for(let i=0;i<N;i++){const r=N>1?Math.floor(i/cols):0,c=i%cols,x=cols===1?0:lerp(-0.7,0.7,c/(cols-1)),z=N===1?0:(r===0?-0.45:0.45);noz.push({x,z});
+  const cone=new THREE.Mesh(coneGeo,nozMat);cone.position.set(x,0.19,z);cone.castShadow=true;nozG.add(cone);
+  const pipe=new THREE.Mesh(pipeGeo,pipeMat);pipe.position.set(x,0.42,z);nozG.add(pipe);
+  if(z!==0){const arm=new THREE.Mesh(armGeo,pipeMat);arm.rotation.x=Math.PI/2;arm.position.set(x,0.57,z/2);nozG.add(arm)}}
+ lastN=N}
+/* 力的箭頭 */
+function makeArrow(col){const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:col,depthTest:false,transparent:true});
+ const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,1,12),m),head=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.24,16),m);
+ shaft.renderOrder=head.renderOrder=20;g.add(shaft,head);g.userData={shaft,head,m};scene.add(g);return g}
+function setArrow(a,x,y,z,dir,len,op){a.position.set(x,y,z);const L=Math.max(0.001,len-0.24);const u=a.userData;
+ u.shaft.scale.y=L;u.shaft.position.y=dir*L/2;u.head.position.y=dir*(L+0.12);u.head.rotation.x=dir<0?Math.PI:0;u.m.opacity=op;a.visible=op>0.01&&len>0.05}
+const arF=makeArrow(0x7CC35A),arW=makeArrow(0xF08080);const tipF=new THREE.Vector3(),tipW=new THREE.Vector3();
+/* 噴流粒子 */
+const JN=3200,jPos=new Float32Array(JN*3),jCol=new Float32Array(JN*3),jA=new Float32Array(JN),jS=new Float32Array(JN),jV=new Float32Array(JN*3),jAge=new Float32Array(JN),jLife=new Float32Array(JN),jG=new Uint8Array(JN);let jHead=0;
+const jGeo=new THREE.BufferGeometry();jGeo.setAttribute('position',new THREE.BufferAttribute(jPos,3));jGeo.setAttribute('pcol',new THREE.BufferAttribute(jCol,3));jGeo.setAttribute('alpha',new THREE.BufferAttribute(jA,1));jGeo.setAttribute('psize',new THREE.BufferAttribute(jS,1));
+const jMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uPR:{value:renderer.getPixelRatio()}},
+ vertexShader:`attribute vec3 pcol;attribute float alpha;attribute float psize;uniform float uPR;varying vec3 vC;varying float vA;void main(){vC=pcol;vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=psize*uPR*(420.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying vec3 vC;varying float vA;void main(){vec2 d=gl_PointCoord-0.5;float r=length(d);if(r>0.5)discard;gl_FragColor=vec4(vC,vA*smoothstep(0.5,0.15,r));}`});
+const jets=new THREE.Points(jGeo,jMat);jets.frustumCulled=false;scene.add(jets);
+function tcol(T,o){const c=clamp((30-T)/90,0,1);o[0]=lerp(232,95,c)/255;o[1]=lerp(121,168,c)/255;o[2]=lerp(79,240,c)/255}
+function emit(x,y,z,vJ,n){for(let k=0;k<n;k++){const i=jHead;jHead=(jHead+1)%JN;const i3=i*3;
+ jPos[i3]=x+(Math.random()-0.5)*0.05;jPos[i3+1]=y;jPos[i3+2]=z+(Math.random()-0.5)*0.05;
+ jV[i3]=(Math.random()-0.5)*0.4;jV[i3+1]=-vJ*(0.85+Math.random()*0.3);jV[i3+2]=(Math.random()-0.5)*0.4;jAge[i]=0;jLife[i]=1.3+Math.random()*0.8;jG[i]=0}}
+const tc=[0,0,0];
+function updateJets(dt){const dr=Math.pow(0.12,dt);
+ for(let i=0;i<JN;i++){if(jLife[i]<=0){jA[i]=0;continue}jAge[i]+=dt;if(jAge[i]>=jLife[i]){jLife[i]=0;jA[i]=0;continue}const i3=i*3;
+  jPos[i3]+=jV[i3]*dt;jPos[i3+1]+=jV[i3+1]*dt;jPos[i3+2]+=jV[i3+2]*dt;
+  if(!jG[i]){if(jPos[i3+1]<=0.03){jPos[i3+1]=0.03;jG[i]=1;const dx=jPos[i3],dz=jPos[i3+2],L=Math.hypot(dx,dz)||1,sp=Math.abs(jV[i3+1])*0.55*(0.5+Math.random());
+    jV[i3]=dx/L*sp+(Math.random()-0.5)*0.6;jV[i3+1]=0.1+Math.random()*0.3;jV[i3+2]=dz/L*sp+(Math.random()-0.5)*0.6}}
+  else{jV[i3]*=dr;jV[i3+1]*=dr;jV[i3+2]*=dr}
+  const f=jAge[i]/jLife[i];tcol(lerp(R.T2,R.Ta,clamp(f*1.3,0,1)),tc);jCol[i3]=tc[0];jCol[i3+1]=tc[1];jCol[i3+2]=tc[2];jA[i]=(1-f)*0.85;jS[i]=0.07+f*(jG[i]?0.30:0.10)}
+ for(const n of ['position','pcol','alpha','psize'])jGeo.attributes[n].needsUpdate=true}
+/* 白霧 */
+const fc=document.createElement('canvas');fc.width=fc.height=128;const fx=fc.getContext('2d'),gr=fx.createRadialGradient(64,64,0,64,64,64);
+gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.4,'rgba(255,255,255,0.55)');gr.addColorStop(1,'rgba(255,255,255,0)');fx.fillStyle=gr;fx.fillRect(0,0,128,128);
+const fogTex=new THREE.CanvasTexture(fc);fogTex.colorSpace=THREE.SRGBColorSpace;
+const FOG=[];for(let i=0;i<90;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:fogTex,transparent:true,depthWrite:false,opacity:0,color:0xe9eef5}));
+ sp.userData={a:Math.random()*6.283,u:Math.random(),h:Math.random(),s:0.6+Math.random()*0.9,ph:Math.random()*6.283};scene.add(sp);FOG.push(sp)}
+let fogAmt=0,fogR=0;
+function updateFog(t){for(const sp of FOG){const d=sp.userData,rad=0.6+d.u*(0.6+3.4*fogR),ang=d.a+t*0.04*(d.u-0.5);
+ sp.position.set(Math.cos(ang)*rad*1.3,0.15+d.h*(0.2+0.8*fogR),Math.sin(ang)*rad);const sc=d.s*(0.8+1.6*fogR);sp.scale.set(sc,sc,1);
+ sp.material.opacity=fogAmt*0.30*(1-d.u*0.45)*(0.85+0.15*Math.sin(t*0.7+d.ph));sp.visible=sp.material.opacity>0.003}}
+
+/* ================= 鏡頭（隨滑動） ================= */
+const KF=[
+ [0.00,[-6.2,1.9,6.4],[0,0.55,0]],[0.10,[-4.6,2.3,6.0],[0,0.55,0]],[0.18,[-0.6,2.7,5.4],[0.1,0.55,0]],[0.28,[0.9,1.9,3.9],[0.2,0.55,0]],
+ [0.34,[1.9,0.34,3.1],[0.5,0.2,0.3]],[0.44,[2.1,0.42,3.3],[0.5,0.22,0.3]],[0.52,[0.3,1.5,8.4],[0,0.9,0]],[0.64,[0.8,1.8,8.8],[0,1.0,0]],
+ [0.72,[-6.6,0.6,6.2],[0,0.9,0]],[0.83,[-7.2,0.9,4.8],[0,0.9,0]],[0.90,[-2,2.8,7.6],[0,0.6,0]],[1.00,[5.8,2.4,6.4],[0,0.6,0]]];
+const cP=new THREE.Vector3(),cT=new THREE.Vector3(),curT=new THREE.Vector3();
+function setCam(p,lift,t){let i=0;while(i<KF.length-2&&p>KF[i+1][0])i++;const a=KF[i],b=KF[i+1],k=sstep(0,1,(p-a[0])/(b[0]-a[0]));
+ cP.set(lerp(a[1][0],b[1][0],k),lerp(a[1][1],b[1][1],k),lerp(a[1][2],b[1][2],k));cT.set(lerp(a[2][0],b[2][0],k),lerp(a[2][1],b[2][1],k),lerp(a[2][2],b[2][2],k));
+ cT.y+=lift*0.7;cP.y+=lift*0.5;
+ const ang=0.14*Math.sin(t*0.25)*(1-sstep(0.06,0.12,p)),dx=cP.x-cT.x,dz=cP.z-cT.z;cP.x=cT.x+dx*Math.cos(ang)-dz*Math.sin(ang);cP.z=cT.z+dx*Math.sin(ang)+dz*Math.cos(ang);
+ if(camera.aspect<1)cP.sub(cT).multiplyScalar(1.35).add(cT);
+ camera.position.copy(cP);camera.lookAt(cT);curT.copy(cT)}
+function onResize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<1?50:35;
+ const w=innerWidth,h=innerHeight;if(w>760)camera.setViewOffset(w,h,-w*0.14,0,w,h);else camera.setViewOffset(w,h,0,h*0.17,w,h);
+ camera.updateProjectionMatrix();jMat.uniforms.uPR.value=renderer.getPixelRatio()}
+addEventListener('resize',onResize);onResize();
+
+/* ================= 卡片、導覽、引線、標籤 ================= */
+const cards=[...document.querySelectorAll('.card')];
+const RAIL=[['開場',0],['能量',0.17],['變冷',0.36],['飛起來',0.54],['白霧',0.74],['總結',0.92]];
+const railBtns=RAIL.map(([n,p])=>{const b=document.createElement('button');b.innerHTML='<span>'+n+'</span>';b.onclick=()=>{const m=document.documentElement.scrollHeight-innerHeight;scrollTo({top:p*m,behavior:'smooth'})};$('rail').appendChild(b);return b});
+let phase=-1,phaseT=0;
+function setPhase(ph,t){phase=ph;phaseT=t;cards.forEach(c=>c.classList.toggle('on',+c.dataset.ph===ph));railBtns.forEach((b,i)=>b.classList.toggle('on',i===ph))}
+
+const pv=new THREE.Vector3();
+function scr(v){pv.copy(v).project(camera);if(pv.z>1||pv.z<-1)return null;return{x:(pv.x+1)/2*innerWidth,y:(1-pv.y)/2*innerHeight}}
+const W3=(x,y,z)=>car.localToWorld(new THREE.Vector3(x,y,z));
+const wTank=()=>W3(0,0.6,0),wExit=()=>noz.length?W3(noz[0].x,0.1,noz[0].z):W3(0,0.1,0);
+const wJet=()=>{const e=wExit();e.y=Math.max(0.06,e.y-0.3);return e},wFog=()=>new THREE.Vector3(1.8,0.45,1.9);
+const LINKS={1:[['f1h',wTank,'var(--h)'],['f1k',wExit,'var(--vv)']],2:[['f2T0',wTank,'var(--h)'],['f2T',wJet,'var(--vv)']],
+ 3:[['f3F',()=>tipF.clone(),'var(--f)'],['f3W',()=>tipW.clone(),'var(--w)'],['f3N',wExit,'var(--tx2)']],4:[['f4j',wJet,'var(--vv)'],['f4f',wFog,'var(--m)',()=>R.fog&&fogAmt>0.2]]};
+const svg=$('lead'),LP=[];for(let i=0;i<3;i++){const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('fill','none');p.setAttribute('stroke-width','1.6');p.setAttribute('stroke-dasharray','4 4');
+ const a=document.createElementNS('http://www.w3.org/2000/svg','circle');a.setAttribute('r','3');const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('r','4.5');svg.append(p,a,c);LP.push({p,a,c})}
+function drawLeads(t){let k=0;const L=(LINKS[phase]||[]).filter(l=>!l[3]||l[3]());
+ if(t-phaseT>0.45&&!drawerOpen){const card=cards[phase].getBoundingClientRect(),mobile=innerWidth<=760;
+  for(const l of L){const el=$(l[0]);if(!el)continue;const r=el.getBoundingClientRect(),e=scr(l[1]());if(!e)continue;let sx,sy,d;
+   if(!mobile){sx=card.right;sy=r.top+r.height*0.35;d=`M${sx},${sy} C${sx+90},${sy} ${e.x-90},${e.y} ${e.x},${e.y}`}
+   else{sx=r.left+r.width/2;sy=card.top;d=`M${sx},${sy} C${sx},${sy-60} ${e.x},${e.y+60} ${e.x},${e.y}`}
+   const o=LP[k++];o.p.setAttribute('d',d);o.p.style.stroke=l[2];o.a.setAttribute('cx',sx);o.a.setAttribute('cy',sy);o.a.style.fill=l[2];
+   o.c.setAttribute('cx',e.x);o.c.setAttribute('cy',e.y);o.c.style.fill=l[2];o.p.style.display=o.a.style.display=o.c.style.display=''}}
+ for(;k<LP.length;k++)LP[k].p.style.display=LP[k].a.style.display=LP[k].c.style.display='none'}
+
+const HOTS=[{id:'tank',label:'氣槽',loc:[0,0.92,0]},{id:'nozzle',label:'噴嘴'},{id:'fan',label:'後方風扇',loc:[2.38,0.62,0]},{id:'floor',label:'車底吸盤',topic:'fan',loc:[-0.5,0.27,1.0]},{id:'fog',label:'白霧',world:[2.0,0.5,2.0]}];
+const hotEls=HOTS.map(h=>{const b=document.createElement('button');b.className='hot';b.innerHTML='<i>+</i><span></span>';b.onclick=()=>openTopic(h.topic||h.id);$('hots').appendChild(b);return b});
+function updateHots(show){HOTS.forEach((h,i)=>{const b=hotEls[i];let w;
+ if(h.id==='nozzle')w=wExit();else if(h.world)w=new THREE.Vector3(...h.world);else w=W3(...h.loc);
+ const s=scr(w);let vis=show&&!!s;if(h.id==='fog')vis=vis&&fogAmt>0.3;
+ b.style.opacity=vis?1:0;b.style.pointerEvents=vis?'auto':'none';if(s){b.style.left=s.x+'px';b.style.top=s.y+'px'}
+ b.querySelector('span').textContent=h.id==='nozzle'?R.N+' 個噴嘴':h.label})}
+
+/* 卡片 04 的小圖 */
+const mini=$('mini'),mc=mini.getContext('2d');
+function drawMini(t){const W=300,H=150;mc.setTransform(2,0,0,2,0,0);mc.clearRect(0,0,W,H);
+ const Tmin=Math.min(-40,Math.floor(R.Tj/10)*10),Tmax=Math.max(40,R.Tj+5),emax=Math.max(es(R.Ta)*1.35,R.ej*1.2,0.5);
+ const mx=T=>32+(T-Tmin)/(Tmax-Tmin)*(W-42),my=e=>H-20-clamp(e/emax,0,1.05)*(H-30);
+ mc.strokeStyle='rgba(255,255,255,.25)';mc.lineWidth=1;mc.beginPath();mc.moveTo(mx(Tmin),my(0));mc.lineTo(mx(Tmax),my(0));mc.moveTo(mx(Tmin),my(0));mc.lineTo(mx(Tmin),8);mc.stroke();
+ mc.font='10px system-ui,sans-serif';mc.fillStyle='#8a887f';mc.textAlign='center';[Tmin,0,Tmax].forEach(T=>mc.fillText(T+'°',mx(T),H-6));mc.textAlign='left';mc.fillText('水氣',4,14);
+ mc.strokeStyle='#85B7EB';mc.lineWidth=2.2;mc.beginPath();for(let T=Tmin;T<=Tmax;T++){const y=my(es(T));T===Tmin?mc.moveTo(mx(T),y):mc.lineTo(mx(T),y)}mc.stroke();
+ const Tf=f=>f*R.Ta+(1-f)*R.Tj,ef=f=>f*R.e+(1-f)*R.ej;
+ mc.strokeStyle='#8a887f';mc.lineWidth=1.5;mc.beginPath();mc.moveTo(mx(R.Tj),my(R.ej));mc.lineTo(mx(R.Ta),my(R.e));mc.stroke();
+ if(R.fog){mc.strokeStyle='#A59CF0';mc.lineWidth=5;mc.beginPath();mc.moveTo(mx(Tf(R.lo)),my(ef(R.lo)));mc.lineTo(mx(Tf(R.hi)),my(ef(R.hi)));mc.stroke()}
+ mc.setLineDash([3,3]);mc.strokeStyle='#85B7EB';mc.lineWidth=1;mc.beginPath();mc.moveTo(mx(R.Ta),my(R.e));mc.lineTo(mx(R.Td),my(R.e));mc.lineTo(mx(R.Td),my(0));mc.stroke();mc.setLineDash([]);
+ mc.fillStyle='#ece9e1';[[R.Ta,R.e,'環境'],[R.Tj,R.ej,'噴流']].forEach(a=>{mc.beginPath();mc.arc(mx(a[0]),my(a[1]),3.5,0,7);mc.fill();mc.fillText(a[2],mx(a[0])+5,my(a[1])-5)});
+ mc.fillStyle='#85B7EB';mc.fillText('露點',mx(R.Td)+3,my(0)-4);
+ const fm=(t*0.2)%1,inS=R.fog&&fm>=R.lo&&fm<=R.hi;mc.fillStyle=inS?'#A59CF0':'#8a887f';mc.beginPath();mc.arc(mx(Tf(fm)),my(ef(fm)),4.5,0,7);mc.fill()}
+
+/* 自由視角 */
+let freeView=false,controls=null;
+$('free').onclick=()=>{freeView=!freeView;
+ if(freeView){controls=new OrbitControls(camera,renderer.domElement);controls.enableZoom=false;controls.enableDamping=true;controls.target.copy(curT);controls.update();$('free').textContent='回到故事鏡頭'}
+ else{controls.dispose();controls=null;renderer.domElement.style.touchAction='';$('free').textContent='自由視角'}};
+
+/* ================= 主迴圈 ================= */
+calc();buildNozzles();refreshV();
+let pS=0,t=0,last=performance.now();const tmpCol=new THREE.Color();
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;t+=dt;
+ const maxS=document.documentElement.scrollHeight-innerHeight,p=maxS>0?scrollY/maxS:0;pS+=(p-pS)*Math.min(1,dt*6);
+ const ph=pS<0.12?0:pS<0.30?1:pS<0.46?2:pS<0.66?3:pS<0.84?4:5;if(ph!==phase)setPhase(ph,t);
+ if(R.N!==lastN)buildNozzles();
+ /* 故事時間 → 起跳高度 */
+ const tau=tauAt(pS);hNow=hAt(tau);
+ const burning=pS>0.30&&pS<0.985&&R.tb>0&&tau<R.tb;
+ const lift=R.apex>0?1.7*hNow/R.apex:0;car.position.y=lift;car.updateMatrixWorld();
+ /* X 光：車身變透明，露出氣槽 */
+ const op=1-0.82*band(pS,0.10,0.17,0.42,0.48);
+ bodyMat.opacity=op;glassMat.opacity=0.92*op;bodyMat.depthWrite=glassMat.depthWrite=op>0.97;tankG.visible=op<0.95; XR.forEach(m=>{m.transparent=op<0.99;m.opacity=op;m.depthWrite=op>0.97});
+ tankMat.emissiveIntensity=band(pS,0.12,0.16,0.28,0.32)*0.35*(0.6+0.4*Math.sin(t*3));
+ if(tankG.visible){const amp=0.03*Math.sqrt(R.T0K/293);tcol(R.T0,tc);tmpCol.setRGB(tc[0],tc[1],tc[2],THREE.SRGBColorSpace);
+  for(let i=0;i<TPN*3;i+=3){tpPos[i]=tpBase[i]+(Math.random()-0.5)*2*amp;tpPos[i+1]=tpBase[i+1]+(Math.random()-0.5)*2*amp;tpPos[i+2]=tpBase[i+2]+(Math.random()-0.5)*2*amp;tpCol[i]=tmpCol.r;tpCol[i+1]=tmpCol.g;tpCol[i+2]=tmpCol.b}
+  tpGeo.attributes.position.needsUpdate=tpGeo.attributes.color.needsUpdate=true}
+ /* 噴嘴與噴流 */
+ nozMat.emissiveIntensity=burning?0.9:0;
+ if(burning){const vJ=3+R.ve/800*7,n=R.N>4?2:3;for(const z of noz){const w=W3(z.x,0.1,z.z);emit(w.x,w.y,w.z,vJ,n)}}
+ updateJets(dt);
+ /* 風扇與吸盤 */
+ blades.rotation.x+=dt*(2+VAL.dpf*10);skirtMat.emissiveIntensity=VAL.dpf/5*1.2;
+ /* 白霧 */
+ let ft=0;if(R.fog&&pS>0.30&&R.tb>0){ft=clamp(tau/(0.3*R.tb),0,1);if(tau>R.tap)ft*=1-clamp((tau-R.tap)/Math.max(0.5,(R.tf-R.tap)*0.8),0,1)}
+ fogAmt+=(ft-fogAmt)*Math.min(1,dt*2.5);fogR=R.tb>0?clamp(tau/R.tb,0,1):0;updateFog(t);
+ /* 力的箭頭 */
+ const opA=band(pS,0.46,0.50,0.82,0.86),LW=0.9,LF=burning?(R.W>0?Math.min(3.0,0.9*R.TW):2.0):0,ay=lift+0.75;
+ setArrow(arF,-0.55,ay,1.3,1,LF,opA);setArrow(arW,0.55,ay,1.3,-1,R.W>0?LW:0,opA);tipF.set(-0.55,ay+Math.max(LF,0.1),1.3);tipW.set(0.55,ay-LW,1.3);
+ /* 鏡頭 */
+ if(!freeView)setCam(pS,lift,t);else controls.update();
+ renderer.render(scene,camera);
+ updateV();drawLeads(t);updateHots((pS<0.10||pS>0.86||freeView)&&!drawerOpen);if(phase===4)drawMini(t);
+ $('hint').style.opacity=pS<0.03?1:0;
+ requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
